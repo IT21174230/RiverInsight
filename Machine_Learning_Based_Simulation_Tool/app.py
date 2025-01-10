@@ -10,7 +10,7 @@ from werkzeug.exceptions import HTTPException
 app = Flask(__name__)
 
 global model
-with open('Machine_Learning_Based_Simulation_Tool /model/riverinsight_simulation_model.pkl', 'rb') as f:
+with open('Machine_Learning_Based_Simulation_Tool/model/riverinsight_simulation_model.pkl', 'rb') as f:
     model = pkl.load(f)
 
 
