@@ -4,6 +4,9 @@ import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
+# to prevent the error when flattening the predictions
+import tensorflow.python.ops.numpy_ops.np_config as np_config
+np_config.enable_numpy_behavior()
 
 model=r'model\0_85_0_59_filt3_6feat.joblib'
 scaler_year=r'data_dir\scaler_year.pkl'
@@ -56,7 +59,7 @@ def add_time_features(df, scaler):
 
 def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year ):
     
-    from app import task_queue
+    # from app import task_queue
 
     predictions = []
     maps=[]
@@ -68,13 +71,13 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
     model=intialize_model(model=model)
 
     for _ in range(n_steps):
-        print(f'timesep:{_}')
-
         # Make prediction for the next step
         if _ ==0:
-          pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
-
-          predictions.append(pred.flatten())  # Flatten to get a 1D prediction
+          # pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
+          pred, map=generate_map(np.expand_dims(current_input, axis=0), model)
+          maps.append(map)
+          predictions.append(tf.reshape(pred, [-1]))
+          
         elif _==1:
           redundant_pred=predictions[-1]
           pca_feat=pca.transform(redundant_pred.reshape(1, -1))
@@ -85,8 +88,11 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time_reshaped], axis=1)
           last_known=last_known_input[-3:]
           final_array = np.vstack([last_known, concatenated])
-          pred=model.predict(np.expand_dims(final_array, axis=0))
-          predictions.append(pred.flatten())
+          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(map)
+          predictions.append(tf.reshape(pred, shape=[-1]))
+          # task_queue.put(generate_map_png, map, _)
+          t=generate_map_png(map, _)
 
         elif _==2:
           redundant_pred=predictions
@@ -98,8 +104,13 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-2:]
           final_array = np.vstack([last_known, concatenated])
-          pred=model.predict(np.expand_dims(final_array, axis=0))
-          predictions.append(pred.flatten())
+          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(map)
+          predictions.append(tf.reshape(pred, shape=[-1]))
+          task_queue.put(generate_map_png, map, _)
+          t=generate_map_png(map, _)
+
+
         elif _==3:
           redundant_pred=predictions
           pca_feat=pca.transform(redundant_pred)
@@ -110,31 +121,39 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-1:]
           final_array = np.vstack([last_known, concatenated])
-          pred=model.predict(np.expand_dims(final_array, axis=0))
-          predictions.append(pred.flatten())
+          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(map)
+          predictions.append(tf.reshape(pred, shape=[-1]))
+          task_queue.put(generate_map_png, map, _)
+          t=generate_map_png(map, _)
+
         else:
           redundant_pred=predictions[-4:]
           pca_feat=pca.transform(redundant_pred)
           time=time_features[(_-3):_+1, :]
           concatenated = np.concatenate([pca_feat, time], axis=1)
-          pred=model.predict(np.expand_dims(concatenated, axis=0))
-          predictions.append(pred.flatten())
-    
-    return np.array(predictions)
+          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(map)
+          predictions.append(tf.reshape(pred, shape=[-1]))
+          task_queue.put(generate_map_png, map, _)
+          t=generate_map_png(map, _)
+
+    return np.array(predictions), t
   
-years, quarters, n_steps=get_new_time(2025, 3)
+years, quarters, n_steps=get_new_time(2026, 1)
 # pass these as parameters to test w postman
+
 
 def return_to_hp():
   try:
-    predictions= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    predictions, t= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
     unscaled_predictions=scaler_ts.inverse_transform(predictions)
     predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
     targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
     for i, col in enumerate(targets):
       predictions_df[col] = unscaled_predictions[:, i]
     # return predictions_df
-    return 'successfully generated the dataframe'
+    return 'successfully generated the dataframe'+t
   except Exception as e:
     return f'no predictions generated due to \n{e} '
 

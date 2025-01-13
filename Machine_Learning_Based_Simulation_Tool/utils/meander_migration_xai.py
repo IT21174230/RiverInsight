@@ -47,5 +47,8 @@ def generate_map_png(map,idx):
         return 'could not generate saliency map due to '+e   
      
 def clear_images():
-    # clear image dir after each use of the prediction function
-    pass
+    IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
+    images_list=os.listdir(IMAGE_FOLDER)
+    for i in images_list:
+        os.remove(os.path.join(IMAGE_FOLDER,i))        
+        
