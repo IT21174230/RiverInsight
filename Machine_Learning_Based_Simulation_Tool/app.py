@@ -1,7 +1,7 @@
 # Importing flask module in the project is mandatory
 # An object of Flask class is our WSGI application.
 from flask import Flask
-from utils.meander_migration import get_new_time
+from utils.meander_migration import return_to_hp
 
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
@@ -18,7 +18,8 @@ def homepage():
 @app.route('/meander_migration')
 
 def meander_prediction():
-    pass
+    df=return_to_hp()
+    return df.to_html()
 # main driver function
 if __name__ == '__main__':
 

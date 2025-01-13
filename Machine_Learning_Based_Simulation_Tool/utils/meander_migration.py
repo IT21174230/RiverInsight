@@ -2,17 +2,19 @@ import pandas as pd
 import numpy as np
 import joblib
 import tensorflow as tf
-from tensorflow.keras.model import Sequential
+from sklearn.preprocessing import StandardScaler
 
 model_meandering_tcn=r'model\0_85_0_59_filt3_6feat.joblib'
 scaler_year=r'data_dir\scaler_year.pkl'
 scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
+pca=r'data_dir\pca_obj.pkl'
 
 model_meandering_tcn=joblib.load(model_meandering_tcn)
 scaler_year=joblib.load(scaler_year)
 scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
+pca=joblib.load(pca)
 
 def get_new_time(year, quarter):
   no_of_years=year-2024
@@ -130,17 +132,18 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           # print(time_df.iloc[_])
 
     return np.array(predictions)
+  
+years, quarters, n_steps=get_new_time(2025, 3)
 
-# # Example usage:
-# n_steps = nstep
+def return_to_hp():
+  try:
+    predictions = predict_meandering(model_meandering_tcn, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    unscaled_predictions=scaler_ts.inverse_transform(predictions)
+    predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
+    targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
+    for i, col in enumerate(targets):
+      predictions_df[col] = unscaled_predictions[:, i]
+    return predictions_df
+  except:
+    return 'no predictions generated'
 
-# # print(n_steps)
-
-# # Assume `X_test[-1]` is the last input sequence from the test set
-# last_known_input = X_test[-1]
-
-# # Predict the next 20 steps
-# predictions = predict_beyond_test_set(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
-
-# # Print the predictions
-# # print("Predictions for the next 20 steps:", predictions)
