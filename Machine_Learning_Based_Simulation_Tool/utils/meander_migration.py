@@ -49,28 +49,15 @@ def add_time_features(df, scaler):
     df['quarter_sin'] = np.sin(2 * np.pi * df['quarter'] / 4)
     df['quarter_cos'] = np.cos(2 * np.pi * df['quarter'] / 4)
 
-    # # Cyclical encoding for year (you can normalize the year value if needed)
-    # df['year_sin'] = np.sin(2 * np.pi * (df['year'] - df['year'].min()) / (df['year'].max() - df['year'].min()))
-    # df['year_cos'] = np.cos(2 * np.pi * (df['year'] - df['year'].min()) / (df['year'].max() - df['year'].min()))
-
-    df['year_scaled'] = scaler.transform(df[['year']])  # Use double brackets to make it 2D    return df
+    df['year_scaled'] = scaler.transform(df[['year']])  
 
     return df
 
 
 def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year ):
-    """
-    Predicts beyond the test set by iteratively predicting the next step.
+    
+    from app import task_queue
 
-    Parameters:
-    - model: Trained model.
-    - last_known_input: Last known input data (shape should be (input_steps, num_input_features)).
-    - n_steps: Number of steps to predict beyond the test set.
-    - scaler: If you need to reverse scale the predictions, provide the scaler (optional).
-
-    Returns:
-    - predictions: Predicted values for the next n steps.
-    """
     predictions = []
     maps=[]
     current_input = last_known_input
@@ -85,12 +72,9 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
 
         # Make prediction for the next step
         if _ ==0:
-          # pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
-          pred, map=generate_map(np.expand_dims(current_input, axis=0),model)
-          predictions.append(tf.reshape(pred, [-1]))  # Flatten to get a 1D prediction
-          maps.append(map)
-          t=generate_map_png(map, 1)
-          
+          pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
+
+          predictions.append(pred.flatten())  # Flatten to get a 1D prediction
         elif _==1:
           redundant_pred=predictions[-1]
           pca_feat=pca.transform(redundant_pred.reshape(1, -1))
@@ -135,24 +119,22 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time], axis=1)
           pred=model.predict(np.expand_dims(concatenated, axis=0))
           predictions.append(pred.flatten())
-
-
-          # print(time_df.iloc[_])
-
-    return np.array(predictions), t
+    
+    return np.array(predictions)
   
-years, quarters, n_steps=get_new_time(2025, 1)
+years, quarters, n_steps=get_new_time(2025, 3)
+# pass these as parameters to test w postman
 
 def return_to_hp():
   try:
-    predictions, t = predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    predictions= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
     unscaled_predictions=scaler_ts.inverse_transform(predictions)
     predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
     targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
     for i, col in enumerate(targets):
       predictions_df[col] = unscaled_predictions[:, i]
     # return predictions_df
-    return 'successfully generated the dataframe'+t
+    return 'successfully generated the dataframe'
   except Exception as e:
-    return f'no predictions generated due to \n{e}'
+    return f'no predictions generated due to \n{e} '
 

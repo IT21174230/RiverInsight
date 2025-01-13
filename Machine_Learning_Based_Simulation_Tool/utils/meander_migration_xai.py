@@ -1,7 +1,11 @@
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
 import os
+
+import matplotlib
+matplotlib.use('Agg')  
+import matplotlib.pyplot as plt
+# don't open gui windows bc it interacts with main thread from worker
 
 def intialize_model(model):
     input_data = np.random.rand(1, 4, 6).astype(np.float32)
@@ -22,10 +26,10 @@ def generate_map(input_data, model):
     
     return predictions, saliency_map
 
-def generate_map_png(map,idx,image_filename='saliency_map_timestep_2.png'):
+def generate_map_png(map,idx):
     try:
         IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
-        img_filename = image_filename
+        img_filename = f'sal_map_timestep{idx}'
         
         # Save the saliency map as PNG
         plt.imshow(map, cmap='hot', aspect='auto')
@@ -36,7 +40,6 @@ def generate_map_png(map,idx,image_filename='saliency_map_timestep_2.png'):
         plt.xlabel('Features')
         plt.ylabel('Timesteps')
         
-        # Save the figure in the static/images directory
         plt.savefig(os.path.join(IMAGE_FOLDER, img_filename), dpi=300)
         plt.close()  # Close the plot to free memory
         return 'succesfully generate saliency map'
@@ -44,4 +47,5 @@ def generate_map_png(map,idx,image_filename='saliency_map_timestep_2.png'):
         return 'could not generate saliency map due to '+e   
      
 def clear_images():
+    # clear image dir after each use of the prediction function
     pass
