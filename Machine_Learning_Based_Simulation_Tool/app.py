@@ -19,7 +19,7 @@ def homepage():
 
 def meander_prediction():
     df=return_to_hp()
-    return df.to_html()
+    return df
 # main driver function
 if __name__ == '__main__':
 

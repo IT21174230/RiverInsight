@@ -3,18 +3,21 @@ import numpy as np
 import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
+from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
 
-model_meandering_tcn=r'model\0_85_0_59_filt3_6feat.joblib'
+model=r'model\0_85_0_59_filt3_6feat.joblib'
 scaler_year=r'data_dir\scaler_year.pkl'
 scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
 pca=r'data_dir\pca_obj.pkl'
 
-model_meandering_tcn=joblib.load(model_meandering_tcn)
+model=joblib.load(model)
 scaler_year=joblib.load(scaler_year)
 scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
 pca=joblib.load(pca)
+
+model.training=False
 
 def get_new_time(year, quarter):
   no_of_years=year-2024
@@ -69,20 +72,25 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
     - predictions: Predicted values for the next n steps.
     """
     predictions = []
+    maps=[]
     current_input = last_known_input
     time_df=pd.DataFrame({'year': years, 'quarter': quarters})
     time_df=add_time_features(time_df, scaler_year)
     time_features = time_df[['quarter_sin', 'quarter_cos', 'year_scaled']].values
-
+    
+    model=intialize_model(model=model)
 
     for _ in range(n_steps):
         print(f'timesep:{_}')
 
         # Make prediction for the next step
         if _ ==0:
-          pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
-
-          predictions.append(pred.flatten())  # Flatten to get a 1D prediction
+          # pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
+          pred, map=generate_map(np.expand_dims(current_input, axis=0),model)
+          predictions.append(tf.reshape(pred, [-1]))  # Flatten to get a 1D prediction
+          maps.append(map)
+          t=generate_map_png(map, 1)
+          
         elif _==1:
           redundant_pred=predictions[-1]
           pca_feat=pca.transform(redundant_pred.reshape(1, -1))
@@ -131,19 +139,20 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
 
           # print(time_df.iloc[_])
 
-    return np.array(predictions)
+    return np.array(predictions), t
   
-years, quarters, n_steps=get_new_time(2025, 3)
+years, quarters, n_steps=get_new_time(2025, 1)
 
 def return_to_hp():
   try:
-    predictions = predict_meandering(model_meandering_tcn, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    predictions, t = predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
     unscaled_predictions=scaler_ts.inverse_transform(predictions)
     predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
     targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
     for i, col in enumerate(targets):
       predictions_df[col] = unscaled_predictions[:, i]
-    return predictions_df
-  except:
-    return 'no predictions generated'
+    # return predictions_df
+    return 'successfully generated the dataframe'+t
+  except Exception as e:
+    return f'no predictions generated due to \n{e}'
 
