@@ -92,7 +92,7 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           maps.append(map)
           predictions.append(tf.reshape(pred, shape=[-1]))
           # task_queue.put(generate_map_png, map, _)
-          t=generate_map_png(map, _)
+          generate_map_png(map, _)
 
         elif _==2:
           redundant_pred=predictions
@@ -107,8 +107,7 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
           maps.append(map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          task_queue.put(generate_map_png, map, _)
-          t=generate_map_png(map, _)
+          generate_map_png(map, _)
 
 
         elif _==3:
@@ -124,8 +123,7 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
           maps.append(map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          task_queue.put(generate_map_png, map, _)
-          t=generate_map_png(map, _)
+          generate_map_png(map, _)
 
         else:
           redundant_pred=predictions[-4:]
@@ -135,25 +133,24 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
           maps.append(map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          task_queue.put(generate_map_png, map, _)
-          t=generate_map_png(map, _)
+          generate_map_png(map, _)
 
-    return np.array(predictions), t
+    return np.array(predictions)
   
-years, quarters, n_steps=get_new_time(2026, 1)
-# pass these as parameters to test w postman
+# years, quarters, n_steps=get_new_time(2026, 1)
+# # pass these as parameters to test w postman
 
 
-def return_to_hp():
+def return_to_hp(year, quarter):
   try:
-    predictions, t= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    years, quarters, n_steps=get_new_time(year, quarter)
+    predictions= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
     unscaled_predictions=scaler_ts.inverse_transform(predictions)
     predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
     targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
     for i, col in enumerate(targets):
       predictions_df[col] = unscaled_predictions[:, i]
-    # return predictions_df
-    return 'successfully generated the dataframe'+t
+    return predictions_df
   except Exception as e:
-    return f'no predictions generated due to \n{e} '
+    return f'no predictions generated due to \n{e}'
 
