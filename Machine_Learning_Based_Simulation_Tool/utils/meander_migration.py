@@ -4,6 +4,7 @@ import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
+from utils.com_cache import m_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
@@ -21,6 +22,7 @@ last_known_input=joblib.load(last_known_input)
 pca=joblib.load(pca)
 
 model.training=False
+
 
 def get_new_time(year, quarter):
   no_of_years=year-2024
@@ -74,8 +76,8 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
         # Make prediction for the next step
         if _ ==0:
           # pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
-          pred, map=generate_map(np.expand_dims(current_input, axis=0), model)
-          maps.append(map)
+          pred, sal_map=generate_map(np.expand_dims(current_input, axis=0), model)
+          maps.append(sal_map)
           predictions.append(tf.reshape(pred, [-1]))
           
         elif _==1:
@@ -88,11 +90,10 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time_reshaped], axis=1)
           last_known=last_known_input[-3:]
           final_array = np.vstack([last_known, concatenated])
-          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
-          maps.append(map)
+          pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
           # task_queue.put(generate_map_png, map, _)
-          generate_map_png(map, _)
 
         elif _==2:
           redundant_pred=predictions
@@ -104,11 +105,9 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-2:]
           final_array = np.vstack([last_known, concatenated])
-          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
-          maps.append(map)
+          pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          generate_map_png(map, _)
-
 
         elif _==3:
           redundant_pred=predictions
@@ -120,22 +119,20 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-1:]
           final_array = np.vstack([last_known, concatenated])
-          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
-          maps.append(map)
+          pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          generate_map_png(map, _)
 
         else:
           redundant_pred=predictions[-4:]
           pca_feat=pca.transform(redundant_pred)
-          time=time_features[(_-3):_+1, :]
+          time=time_features[(_-3):(_+1), :]
           concatenated = np.concatenate([pca_feat, time], axis=1)
-          pred, map=generate_map(np.expand_dims(final_array, axis=0), model)
-          maps.append(map)
+          pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
+          maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          generate_map_png(map, _)
 
-    return np.array(predictions)
+    return np.array(predictions), maps
   
 # years, quarters, n_steps=get_new_time(2026, 1)
 # # pass these as parameters to test w postman
@@ -143,8 +140,19 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
 
 def return_to_hp(year, quarter):
   try:
-    years, quarters, n_steps=get_new_time(year, quarter)
-    predictions= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+    cache_key=f'{year}_{quarter}'
+    
+    cached_data=m_cache.get(cache_key)
+    
+    if cached_data:
+      predictions, maps=cached_data
+      years, quarters, n_steps=get_new_time(year, quarter)
+
+    else:
+      years, quarters, n_steps=get_new_time(year, quarter)
+      predictions, maps= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+      m_cache.set(cache_key, (predictions, maps))
+      
     unscaled_predictions=scaler_ts.inverse_transform(predictions)
     predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
     targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
