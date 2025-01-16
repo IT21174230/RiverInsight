@@ -73,9 +73,8 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
     model=intialize_model(model=model)
 
     for _ in range(n_steps):
-        # Make prediction for the next step
+
         if _ ==0:
-          # pred = model.predict(np.expand_dims(current_input, axis=0))  # Shape (1, input_steps, num_input_features)
           pred, sal_map=generate_map(np.expand_dims(current_input, axis=0), model)
           maps.append(sal_map)
           predictions.append(tf.reshape(pred, [-1]))
@@ -84,38 +83,30 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           redundant_pred=predictions[-1]
           pca_feat=pca.transform(redundant_pred.reshape(1, -1))
           time=time_features[0]
-          time_reshaped = time.reshape(1, -1)  # Shape: (1, n_time_features)
+          time_reshaped = time.reshape(1, -1)  
 
-          # Concatenate pca_feat and time_reshaped along axis 1
           concatenated = np.concatenate([pca_feat, time_reshaped], axis=1)
           last_known=last_known_input[-3:]
           final_array = np.vstack([last_known, concatenated])
           pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
           maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-          # task_queue.put(generate_map_png, map, _)
 
         elif _==2:
           redundant_pred=predictions
           pca_feat=pca.transform(redundant_pred)
           time=time_features[:2]
-          # time_reshaped = time.reshape(1, -1)  # Shape: (1, n_time_features)
-
-          # # Concatenate pca_feat and time_reshaped along axis 1
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-2:]
           final_array = np.vstack([last_known, concatenated])
           pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
           maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-
+          
         elif _==3:
           redundant_pred=predictions
           pca_feat=pca.transform(redundant_pred)
           time=time_features[:3]
-          # time_reshaped = time.reshape(1, -1)  # Shape: (1, n_time_features)
-
-          # # Concatenate pca_feat and time_reshaped along axis 1
           concatenated = np.concatenate([pca_feat, time], axis=1)
           last_known=last_known_input[-1:]
           final_array = np.vstack([last_known, concatenated])
@@ -126,12 +117,12 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
         else:
           redundant_pred=predictions[-4:]
           pca_feat=pca.transform(redundant_pred)
-          time=time_features[(_-3):(_+1), :]
+          time=time_features[(_-3):_+1, :]
           concatenated = np.concatenate([pca_feat, time], axis=1)
-          pred, sal_map=generate_map(np.expand_dims(final_array, axis=0), model)
+          pred, sal_map=generate_map(np.expand_dims(concatenated, axis=0), model)
           maps.append(sal_map)
           predictions.append(tf.reshape(pred, shape=[-1]))
-
+          
     return np.array(predictions), maps
   
 # years, quarters, n_steps=get_new_time(2026, 1)

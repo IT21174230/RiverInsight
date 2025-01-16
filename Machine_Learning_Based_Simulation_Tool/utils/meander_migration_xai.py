@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 import os
 from utils.com_cache import m_cache
+from tensorflow.keras.models import clone_model
+
 
 import matplotlib
 matplotlib.use('Agg')  
@@ -16,10 +18,12 @@ def intialize_model(model):
 def generate_map(input_data, model):
     input_data = tf.convert_to_tensor(input_data)
     
-    with tf.GradientTape() as tape:
+    
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
         tape.watch(input_data) 
         predictions = model(input_data)  
-        loss = predictions  
+        loss = tf.reduce_sum(predictions)  
+
 
     gradients = tape.gradient(loss, input_data)
     saliency = tf.abs(gradients)  
