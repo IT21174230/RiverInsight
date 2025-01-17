@@ -1,6 +1,9 @@
 import numpy as np
 import tensorflow as tf
 import os
+from utils.com_cache import m_cache
+from tensorflow.keras.models import clone_model
+
 
 import matplotlib
 matplotlib.use('Agg')  
@@ -15,10 +18,12 @@ def intialize_model(model):
 def generate_map(input_data, model):
     input_data = tf.convert_to_tensor(input_data)
     
-    with tf.GradientTape() as tape:
+    
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
         tape.watch(input_data) 
         predictions = model(input_data)  
-        loss = predictions  
+        loss = tf.reduce_sum(predictions)  
+
 
     gradients = tape.gradient(loss, input_data)
     saliency = tf.abs(gradients)  
@@ -26,13 +31,15 @@ def generate_map(input_data, model):
     
     return predictions, saliency_map
 
-def generate_map_png(map,idx):
+def generate_map_png(sal_map,idx):
     try:
         IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
+        if not os.path.exists(IMAGE_FOLDER):
+            os.mkdir(IMAGE_FOLDER)
         img_filename = f'sal_map_timestep{idx}'
         
         # Save the saliency map as PNG
-        plt.imshow(map, cmap='hot', aspect='auto')
+        plt.imshow(sal_map, cmap='hot', aspect='auto')
         plt.colorbar()
         plt.title(f'Saliency Map for Timestep {idx + 1}')
         plt.xticks(ticks=np.arange(6), labels=[f'Feat {i+1}' for i in range(6)])
@@ -44,11 +51,21 @@ def generate_map_png(map,idx):
         plt.close()  # Close the plot to free memory
         return 'succesfully generate saliency map'
     except Exception as e:
-        return 'could not generate saliency map due to '+e   
-     
+        return 'could not generate saliency map due to '+e 
+         
 def clear_images():
     IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
     images_list=os.listdir(IMAGE_FOLDER)
     for i in images_list:
         os.remove(os.path.join(IMAGE_FOLDER,i))        
-        
+
+def send_map_to_api(year, quarter, map_idx):
+    cache_key=f'{year}_{quarter}'
+    cached_data=m_cache.get(cache_key)
+    
+    if cached_data:
+        predications, maps=cached_data
+        f=generate_map_png(maps[map_idx],map_idx)
+        return f
+    else:
+        return 'predict first to generate saliency map'
