@@ -14,12 +14,14 @@ scaler_year=r'data_dir\scaler_year.pkl'
 scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
 pca=r'data_dir\pca_obj.pkl'
+past_migration_vals=r'data_dir\MeanderingInterploatedUpdated.csv'
 
 model=joblib.load(model)
 scaler_year=joblib.load(scaler_year)
 scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
 pca=joblib.load(pca)
+past_vals=pd.read_csv(past_migration_vals, index_col=0)
 
 model.training=False
 
@@ -129,27 +131,39 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
 # # pass these as parameters to test w postman
 
 
-def return_to_hp(year, quarter):
-  try:
-    cache_key=f'{year}_{quarter}'
-    
-    cached_data=m_cache.get(cache_key)
-    
-    if cached_data:
-      predictions, maps=cached_data
-      years, quarters, n_steps=get_new_time(year, quarter)
+def get_past_meandering_values(df, target_year, target_quarter):
+  df['year'] = df['name'].apply(lambda x: int(x.split('-')[0]))
+  df['quarter'] = df['name'].apply(lambda x: int(x.split('-')[1]))
+  df.drop(columns=['name','c5_dist','c6_dist'], inplace=True)
+  filtered_df = df[(df["year"] < target_year) | ((df["year"] == target_year) & (df["quarter"] <= target_quarter))]
+  return filtered_df
 
-    else:
-      years, quarters, n_steps=get_new_time(year, quarter)
-      predictions, maps= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
-      m_cache.set(cache_key, (predictions, maps))
+def return_to_hp(year, quarter):
+  if year>2024:
+    try:
+      cache_key=f'{year}_{quarter}'
       
-    unscaled_predictions=scaler_ts.inverse_transform(predictions)
-    predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
-    targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
-    for i, col in enumerate(targets):
-      predictions_df[col] = unscaled_predictions[:, i]
-    return predictions_df
-  except Exception as e:
-    return f'no predictions generated due to \n{e}'
+      cached_data=m_cache.get(cache_key)
+      
+      if cached_data:
+        predictions, maps=cached_data
+        years, quarters, n_steps=get_new_time(year, quarter)
+
+      else:
+        years, quarters, n_steps=get_new_time(year, quarter)
+        predictions, maps= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
+        m_cache.set(cache_key, (predictions, maps))
+        
+      unscaled_predictions=scaler_ts.inverse_transform(predictions)
+      predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
+      targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
+      for i, col in enumerate(targets):
+        predictions_df[col] = unscaled_predictions[:, i]
+      return predictions_df
+    except Exception as e:
+      return f'no predictions generated due to \n{e}'
+  else:
+
+    return get_past_meandering_values(past_vals, year, quarter)
+
 
