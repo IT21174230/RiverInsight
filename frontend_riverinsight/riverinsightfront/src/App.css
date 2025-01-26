@@ -1,0 +1,82 @@
+/* General Styles */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%; /* Ensures the body takes the full height of the viewport */
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensures the container fills the viewport */
+}
+
+/* Banner Section */
+.banner {
+  background-color: #D0F0C0;
+  color: #014421;
+  padding: 20px;
+  text-align: center;
+}
+
+.logo {
+  height: 100px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+* About Us Button */
+.about-us-button-container {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.about-us-button {
+  background-color: #014421;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.about-us-button:hover {
+  background-color: #014421; /* Darker blue on hover */
+}
+
+/* Main Content Section */
+.main-content {
+  flex: 1; /* Pushes the footer to the bottom */
+  padding: 20px;
+  text-align: center;
+}
+
+.nav-menu {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.nav-menu li {
+  padding: 10px 20px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Footer Section */
+.footer {
+  background-color: #D0F0C0;
+  color: #014421;
+  text-align: center;
+  padding: 10px;
+}
+
+.footer a {
+  color: #ffc107;
+}
