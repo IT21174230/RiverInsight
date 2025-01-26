@@ -2,81 +2,136 @@
 body, html {
   margin: 0;
   padding: 0;
-  height: 100%; /* Ensures the body takes the full height of the viewport */
+  font-family: 'Inter', sans-serif;
+  background-color: #f0f4f8;
+  color: #333;
 }
 
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Ensures the container fills the viewport */
+  min-height: 100vh;
 }
 
 /* Banner Section */
 .banner {
-  background-color: #D0F0C0;
-  color: #014421;
-  padding: 20px;
+  background-color: #1a6b4b; /* Lighter shade of green for better contrast */
+  color: #fff;
+  padding: 40px 20px;
   text-align: center;
+}
+
+.banner-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.banner-title {
+  font-size: 2.5rem;
+  margin: 10px 0 0;
+  font-weight: 700;
 }
 
 .logo {
   height: 100px;
-  margin-right: 10px;
-  vertical-align: middle;
+  margin-bottom: 10px;
 }
 
-* About Us Button */
-.about-us-button-container {
-  text-align: center;
-  margin: 20px 0;
-}
-
-.about-us-button {
-  background-color: #014421;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.about-us-button:hover {
-  background-color: #014421; /* Darker blue on hover */
-}
-
-/* Main Content Section */
+/* Main Content */
 .main-content {
-  flex: 1; /* Pushes the footer to the bottom */
-  padding: 20px;
+  flex: 1;
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.intro-section {
   text-align: center;
+  margin-bottom: 50px;
+}
+
+.intro-section h2 {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+  font-weight: 700;
+  color: #1a6b4b; /* Updated to match the lighter header color */
+}
+
+.intro-section p {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.nav-section {
+  text-align: center;
+}
+
+.nav-section h3 {
+  font-size: 1.8rem;
+  margin-bottom: 30px;
+  font-weight: 600;
+  color: #1a6b4b; /* Updated to match the lighter header color */
 }
 
 .nav-menu {
-  list-style: none;
-  padding: 0;
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 20px; /* Reduced gap to fit all buttons in one line */
+  flex-wrap: wrap; /* Allow wrapping for smaller screens */
 }
 
-.nav-menu li {
-  padding: 10px 20px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+.nav-item {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 200px; /* Reduced width for smaller buttons */
+  padding: 20px; /* Reduced padding for smaller buttons */
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
+  flex: 1 1 200px; /* Allow flexibility for wrapping */
+}
+
+.nav-item:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.icon {
+  font-size: 2.5rem; /* Reduced icon size */
+  color: #1a6b4b; /* Updated to match the lighter header color */
+  margin-bottom: 10px; /* Reduced margin */
+}
+
+.nav-item h4 {
+  font-size: 1.1rem; /* Reduced font size */
+  color: #1a6b4b; /* Updated to match the lighter header color */
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.nav-item p {
+  font-size: 0.9rem; /* Reduced font size */
+  color: #666;
+  line-height: 1.5;
 }
 
 /* Footer Section */
 .footer {
-  background-color: #D0F0C0;
-  color: #014421;
+  background-color: #1a6b4b; /* Updated to match the lighter header color */
+  color: #fff;
   text-align: center;
-  padding: 10px;
+  padding: 20px;
+  font-size: 0.9rem;
 }
 
 .footer a {
   color: #ffc107;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer a:hover {
+  text-decoration: underline;
 }
