@@ -2,11 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MorphologicalPredictions from "./pages/Morphology"; 
 import Navigation from './Navigation';
-import MapWithOverlay from './MeanderMigration';
-import { LoadScript } from "@react-google-maps/api";
 import './App.css';
-
-const GOOGLE_MAPS_API_KEY = "AIzaSyBq5ltJjmroteLeOTiQTdAvBavHQckNbKM";
 
 const App = () => {
   return (
@@ -31,11 +27,6 @@ const App = () => {
             <Route path="/morphological-predictions" element={<MorphologicalPredictions />} />
           </Routes>
         </main>
-
-        {/* Wrap the Map component inside LoadScript here */}
-        <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-          <MapWithOverlay />
-        </LoadScript>
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
