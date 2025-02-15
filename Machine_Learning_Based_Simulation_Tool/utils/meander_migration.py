@@ -9,12 +9,12 @@ from utils.com_cache import m_cache
 import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
 
-model='Machine_Learning_Based_Simulation_Tool/model/0_85_0_59_filt3_6feat.joblib'
-scaler_year='Machine_Learning_Based_Simulation_Tool/data_dir/scaler_year.pkl'
-scaler_ts='Machine_Learning_Based_Simulation_Tool/data_dir/scaler_ts.pkl'
-last_known_input='Machine_Learning_Based_Simulation_Tool/data_dir/last_known_input.pkl'
-pca='Machine_Learning_Based_Simulation_Tool/data_dir/pca_obj.pkl'
-past_migration_vals='Machine_Learning_Based_Simulation_Tool/data_dir/MeanderingInterploatedUpdated.csv'
+model=r'model\0_85_0_59_filt3_6feat.joblib'
+scaler_year=r'data_dir\scaler_year.pkl'
+scaler_ts=r'data_dir\scaler_ts.pkl'
+last_known_input=r'data_dir\last_known_input.pkl'
+pca=r'data_dir\pca_obj.pkl'
+past_migration_vals=r'data_dir\MeanderingInterploatedUpdated.csv'
 
 model=joblib.load(model)
 scaler_year=joblib.load(scaler_year)

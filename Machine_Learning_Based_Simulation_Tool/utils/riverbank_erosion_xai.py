@@ -12,8 +12,8 @@ custom_objects = {
     "mse": tf.keras.losses.MeanSquaredError()
 }
 
-model = tf.keras.models.load_model("Machine_Learning_Based_Simulation_Tool\model\erosion_neural_network_model.h5", custom_objects=custom_objects)
-scaler_year = joblib.load("Machine_Learning_Based_Simulation_Tool\data_dir\scaler_year.pkl")
+model = tf.keras.models.load_model(r"model\erosion_neural_network_model.h5", custom_objects=custom_objects)
+scaler_year = joblib.load(r"data_dir\scaler_year.pkl")
 
 def generate_heatmap_with_timesteps(model, start_year, start_quarter, scaler_year, points, timesteps=5):
     """
