@@ -1,3 +1,4 @@
+from flask import send_file
 import numpy as np
 import tensorflow as tf
 import os
@@ -31,14 +32,15 @@ def generate_map(input_data, model):
     
     return predictions, saliency_map
 
-def generate_map_png(sal_map,idx):
+def generate_map_png(sal_map, idx):
     try:
-        IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
+        IMAGE_FOLDER = r'data_dir/meander_migration_sal_maps'
         if not os.path.exists(IMAGE_FOLDER):
-            os.mkdir(IMAGE_FOLDER)
-        img_filename = f'sal_map_timestep{idx}'
+            os.makedirs(IMAGE_FOLDER)
         
-        # Save the saliency map as PNG
+        img_filename = f'sal_map_timestep{idx}.png'
+        img_path = os.path.join(IMAGE_FOLDER, img_filename)
+        
         plt.imshow(sal_map, cmap='hot', aspect='auto')
         plt.colorbar()
         plt.title(f'Saliency Map for Timestep {idx + 1}')
@@ -47,11 +49,12 @@ def generate_map_png(sal_map,idx):
         plt.xlabel('Features')
         plt.ylabel('Timesteps')
         
-        plt.savefig(os.path.join(IMAGE_FOLDER, img_filename), dpi=300)
+        plt.savefig(img_path, dpi=300)
         plt.close()  # Close the plot to free memory
-        return 'succesfully generate saliency map'
+        
+        return img_path
     except Exception as e:
-        return 'could not generate saliency map due to '+e 
+        return None, f'Could not generate saliency map due to: {str(e)}'
          
 def clear_images():
     IMAGE_FOLDER=r'data_dir\meander_migration_sal_maps'
@@ -60,12 +63,16 @@ def clear_images():
         os.remove(os.path.join(IMAGE_FOLDER,i))        
 
 def send_map_to_api(year, quarter, map_idx):
-    cache_key=f'{year}_{quarter}'
-    cached_data=m_cache.get(cache_key)
+    cache_key = f'{year}_{quarter}'
+    cached_data = m_cache.get(cache_key)
     
     if cached_data:
-        predications, maps=cached_data
-        f=generate_map_png(maps[map_idx],map_idx)
-        return f
+        _, maps = cached_data
+        img_path = generate_map_png(maps[map_idx], map_idx)
+        
+        if img_path:
+            return send_file(img_path, mimetype='image/png')
+        else:
+            return 'Failed to generate image', 500
     else:
-        return 'predict first to generate saliency map'
+        return 'Predict first to generate saliency map', 404
