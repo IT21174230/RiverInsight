@@ -22,11 +22,11 @@ const App = () => {
           </section>
 
           <Navigation />
-
-          <Routes>
-            <Route path="/morphological-predictions" element={<MorphologicalPredictions />} />
-          </Routes>
         </main>
+
+        <Routes>
+            <Route path="/morphological-predictions" element={<MorphologicalPredictions />} />
+        </Routes>
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
