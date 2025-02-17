@@ -5,9 +5,9 @@ from keras.losses import MeanSquaredError
 import joblib
 
 # Paths to resources
-MODEL_PATH = 'Machine_Learning_Based_Simulation_Tool/model/erosion_neural_network_model.h5'
-SCALER_TS_PATH = 'Machine_Learning_Based_Simulation_Tool/data_dir/erosion_scaler_ts.pkl'
-SCALER_YEAR_PATH = 'Machine_Learning_Based_Simulation_Tool/data_dir/scaler_year.pkl'
+MODEL_PATH = r'model\erosion_neural_network_model.h5'
+SCALER_TS_PATH = r'data_dir\erosion_scaler_ts.pkl'
+SCALER_YEAR_PATH = r'data_dir\scaler_year.pkl'
 
 # Load resources
 def load_resources():
