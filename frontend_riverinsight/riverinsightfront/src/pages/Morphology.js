@@ -3,7 +3,7 @@ import MapWithOverlay from '../MeanderMigration';
 // import { LoadScript } from "@react-google-maps/api";
 import { useLoadScript } from "@react-google-maps/api";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBq5ltJjmroteLeOTiQTdAvBavHQckNbKM";
+const GOOGLE_MAPS_API_KEY = "placeholder_api_key";
 
 function MorphologicalPredictions() {
   const { isLoaded, loadError } = useLoadScript({
