@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import MapWithOverlay from '../MeanderMigration';
 import { useLoadScript } from "@react-google-maps/api";
 import axios from 'axios';
-
-const GOOGLE_MAPS_API_KEY = "AIzaSyBq5ltJjmroteLeOTiQTdAvBavHQckNbKM";
+const GOOGLE_MAPS_API_KEY=process.env.REACT_APP_GOOGLE_MAPS_API_KEY
 
 function MorphologicalPredictions() {
   const { isLoaded, loadError } = useLoadScript({

@@ -37,16 +37,18 @@
 // export default MapWithOverlay;
 
 import React, { useState, useEffect } from "react";
-import { GoogleMap, GroundOverlay, OverlayView, useJsApiLoader } from "@react-google-maps/api";
+import { GoogleMap, GroundOverlay, useJsApiLoader } from "@react-google-maps/api";
 
-const mapContainerStyle = {
+const GOOGLE_MAPS_API_KEY=process.env.REACT_APP_GOOGLE_MAPS_API_KEY
+
+const mapContainerStyle = { 
   width: "100%",
   height: "500px",
 };
 const center = { lat: 7.60904, lng: 79.80332 };
 
 const MapWithOverlay = () => {
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyBq5ltJjmroteLeOTiQTdAvBavHQckNbKM" });
+  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const [imageUrl, setImageUrl] = useState("");
   const [clickedPoint, setClickedPoint] = useState(null);
 
