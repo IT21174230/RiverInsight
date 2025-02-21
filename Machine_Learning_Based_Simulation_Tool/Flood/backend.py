@@ -211,7 +211,7 @@ def get_ndwi_for_date(date_str):
         ).getInfo()
 
         mean_ndwi = stats.get('NDWI', 0)
-
+#
         # Calculate water area
         ndwi_mask = ndwi.gte(0)
         water_area = ndwi_mask.multiply(ee.Image.pixelArea()).reduceRegion(
