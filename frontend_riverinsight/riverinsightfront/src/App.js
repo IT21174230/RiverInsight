@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MorphologicalPredictions from "./pages/Morphology"; 
 import Navigation from './Navigation';
 import './App.css';
+import './index.css';
+import FloodDashboard from "./pages/Floodui";
 
 const App = () => {
   return (
@@ -26,12 +28,14 @@ const App = () => {
 
         <Routes>
             <Route path="/morphological-predictions" element={<MorphologicalPredictions />} />
+            <Route path="/floodui" element={<FloodDashboard />} />
         </Routes>
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
         </footer>
       </div>
+      
     </Router>
   );
 };

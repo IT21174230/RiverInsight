@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { AlertCircle, Calendar, Cloud, Droplets, ThermometerSun, Timer } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import '../index.css';
+
 
 export default function FloodDashboard() {
   const [dashboardData, setDashboardData] = useState({
