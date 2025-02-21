@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
+from flask_cors import CORS
 from utils.meander_migration import return_to_hp
 from utils.meander_migration_xai import clear_images, send_map_to_api
 from utils.com_cache import m_cache, init_cache
@@ -11,6 +12,7 @@ from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
 app = Flask(__name__)
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
@@ -40,9 +42,9 @@ def predict_meander():
     q = int(query['quart'])
     df = return_to_hp(y, q)
     try:
-        return df.to_html()
-    except:
-        return df
+        return df.to_json(orient="records")  # Send JSON
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 @app.get('/meander_migration/params/explain_migration/')
 def get_saliency():
@@ -96,4 +98,4 @@ def predict_heatmap():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
