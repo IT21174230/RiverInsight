@@ -19,6 +19,11 @@ function Navigation() {
           <h4>River Meandering Simulation Tool</h4>
           <p>Simulate river behavior to predict and plan for changes.</p>
         </div>
+        <div className="nav-item" onClick={() => navigate("/floodui")} style={{ cursor: "pointer" }}>
+          <FaCompass className="icon" />
+          <h4>Flood prediction</h4>
+          <p>Simulate river behavior to predict and plan for changes.</p>
+        </div>
       </div>
     </section>
   );
