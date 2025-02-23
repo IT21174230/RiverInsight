@@ -15,7 +15,7 @@ const MapWithOverlay = () => {
   const [clickedPoint, setClickedPoint] = useState(null);
 
   useEffect(() => {
-    setImageUrl(window.location.origin + "/skeleton_bg_rm.png");
+    setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
   }, []);
 
   const handleMapClick = (event) => {
