@@ -11,7 +11,7 @@ from sklearn.model_selection import TimeSeriesSplit
 import uvicorn
 
 app = FastAPI()
-
+ 
 # Enable CORS for your React front end
 app.add_middleware(
     CORSMiddleware,
