@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { GoogleMap, GroundOverlay, useJsApiLoader } from "@react-google-maps/api";
 
-const GOOGLE_MAPS_API_KEY=process.env.REACT_APP_GOOGLE_MAPS_API_KEY
+const GOOGLE_MAPS_API_KEY=process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const mapContainerStyle = { 
   width: "100%",
   height: "500px",
 };
+
 const center = { lat: 7.60904, lng: 79.80332 };
 
 const MapWithOverlay = () => {
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
   const [imageUrl, setImageUrl] = useState("");
   const [clickedPoint, setClickedPoint] = useState(null);
 
   useEffect(() => {
-    setImageUrl(window.location.origin + "/skeleton_bg_rm.png");
+    setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
   }, []);
 
   const handleMapClick = (event) => {
@@ -58,7 +62,3 @@ const MapWithOverlay = () => {
 };
 
 export default MapWithOverlay;
-
-
-
-

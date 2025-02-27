@@ -153,13 +153,26 @@ def return_to_hp(year, quarter):
         years, quarters, n_steps=get_new_time(year, quarter)
         predictions, maps= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
         m_cache.set(cache_key, (predictions, maps))
-        
-      unscaled_predictions=scaler_ts.inverse_transform(predictions)
-      predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
-      targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
-      for i, col in enumerate(targets):
-        predictions_df[col] = unscaled_predictions[:, i]
-      return predictions_df
+
+        unscaled_predictions = scaler_ts.inverse_transform(predictions)
+
+        # predictions in meteres 
+
+        transformed_predictions = (unscaled_predictions / 12) * 0.625
+
+        predictions_df = pd.DataFrame({'year': years, 'quarter': quarters})
+        targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
+
+        for i, col in enumerate(targets):
+            predictions_df[col] = transformed_predictions[:, i]
+
+        shift_df = predictions_df.copy()
+        shift_df[targets] = shift_df[targets].diff()
+        # to keep the first row as it is
+        # TODO: FIX THE 1ST ROW
+        # shift_df.iloc[0] = predictions_df.iloc[0]
+
+        return shift_df
     except Exception as e:
       return f'no predictions generated due to \n{e}'
   else:
