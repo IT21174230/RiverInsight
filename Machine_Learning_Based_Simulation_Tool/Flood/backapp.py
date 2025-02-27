@@ -23,11 +23,25 @@ app.add_middleware(
 
 MODEL_FILE = "prophet_model.pkl"
 TRAIN_FILE = "prophet_train.csv"
+THRESHOLD_FILE = "water_area_threshold.txt"
 
 # Global variables for extra regressor models
 temperature_model = None
 humidity_model = None
 rainfall_model = None
+
+def load_threshold():
+    try:
+        with open(THRESHOLD_FILE, "r") as f:
+            content = f.read().strip()
+            # Expecting a line like: "Top 5% Threshold for Water Area (Flood Marker): <value>"
+            parts = content.split(":")
+            if len(parts) >= 2:
+                threshold_str = parts[1].strip()
+                return float(threshold_str)
+    except Exception as e:
+        print("Error loading threshold:", e)
+    return None
 
 def load_and_train_model():
     global temperature_model, humidity_model, rainfall_model
@@ -208,16 +222,31 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     row = forecast_for_date.iloc[0]
     water_area = row["yhat"]
 
-    # Risk thresholds: <7.5 => Low, 7.5–15 => Moderate, >=15 => High
-    if water_area < 7.5:
-        risk_level = "Low Risk"
-        alerts = ["No flood warning", "Continue normal activities"]
-    elif water_area < 9.0:
-        risk_level = "Moderate Risk"
-        alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+    # Load the threshold value from scaler code
+    threshold = load_threshold()
+
+    # Determine risk based on the scaler threshold (if available)
+    if threshold is not None:
+        if water_area < 0.8 * threshold:
+            risk_level = "Low Risk"
+            alerts = ["No flood warning", "Continue normal activities"]
+        elif water_area < threshold:
+            risk_level = "Moderate Risk"
+            alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+        else:
+            risk_level = "High Risk"
+            alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
     else:
-        risk_level = "High Risk"
-        alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
+        # Fallback to previous thresholds
+        if water_area < 7.5:
+            risk_level = "Low Risk"
+            alerts = ["No flood warning", "Continue normal activities"]
+        elif water_area < 9.0:
+            risk_level = "Moderate Risk"
+            alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+        else:
+            risk_level = "High Risk"
+            alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
 
     # Predict additional parameters using separate models
     if temperature_model is not None:
@@ -237,6 +266,40 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
         predicted_rainfall = float(round(rain_forecast.iloc[0]["yhat"], 2))
     else:
         predicted_rainfall = None
+
+    # Compute explainable factor by comparing predicted values to historical averages
+    deviations = {}
+    # Check Rainfall
+    if predicted_rainfall is not None and "Rainfall" in prophet_train.columns:
+        rainfall_mean = prophet_train["Rainfall"].mean()
+        rainfall_std = prophet_train["Rainfall"].std()
+        if rainfall_std > 0 and predicted_rainfall > rainfall_mean:
+            deviations["Rainfall"] = (predicted_rainfall - rainfall_mean) / rainfall_std
+    # Check Temperature
+    if predicted_temperature is not None and "Average_Temperature" in prophet_train.columns:
+        temp_mean = prophet_train["Average_Temperature"].mean()
+        temp_std = prophet_train["Average_Temperature"].std()
+        if temp_std > 0 and predicted_temperature > temp_mean:
+            deviations["Temperature"] = (predicted_temperature - temp_mean) / temp_std
+    # Check Humidity
+    if predicted_humidity is not None and "Average_Humidity" in prophet_train.columns:
+        hum_mean = prophet_train["Average_Humidity"].mean()
+        hum_std = prophet_train["Average_Humidity"].std()
+        if hum_std > 0 and predicted_humidity > hum_mean:
+            deviations["Humidity"] = (predicted_humidity - hum_mean) / hum_std
+
+    if deviations:
+        # Select factor with highest deviation
+        main_factor = max(deviations, key=deviations.get)
+        deviation_value = deviations[main_factor]
+        explanation_text = (
+            f"The main factor contributing to the flood risk is {main_factor}. "
+            f"It is {deviation_value:.2f} standard deviations above its average level, "
+            f"indicating an abnormal increase which may be driving the high water area."
+        )
+    else:
+        main_factor = "None"
+        explanation_text = "No single factor stands out as abnormal compared to historical averages."
 
     # Prepare chart data from January 1 of the forecast year to user_input_date
     year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
@@ -267,7 +330,11 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
             ]
             if reg in future.columns
         },
-        "chart_data": chart_data
+        "chart_data": chart_data,
+        "explainable_factor": {
+            "factor": main_factor,
+            "explanation": explanation_text
+        }
     }
     return result
 

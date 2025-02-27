@@ -27,6 +27,7 @@ export default function FloodDashboard() {
       humidity: "",
       windSpeed: ""
     },
+    explainableFactor: ""  // New field for explanation
   });
   const [selectedDate, setSelectedDate] = useState("2025-03-15");
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ export default function FloodDashboard() {
               ? `${data.predicted_wind_speed} km/h`
               : "N/A"
           },
+          explainableFactor: data.explainable_factor.explanation || ""
         });
         setLoading(false);
       })
@@ -87,7 +89,7 @@ export default function FloodDashboard() {
     }
   };
 
-  const { date, predictedWaterArea, floodWarning, chartData, riskLevel, alerts, mainFacts } = dashboardData;
+  const { date, predictedWaterArea, floodWarning, chartData, riskLevel, alerts, mainFacts, explainableFactor } = dashboardData;
 
   return (
     <div className={`${outerBg} min-h-screen p-6 flex justify-center relative`}>
@@ -205,7 +207,6 @@ export default function FloodDashboard() {
                     label: "Humidity",
                     value: mainFacts.humidity
                   },
-                  
                 ].map((fact, idx) => (
                   <div key={idx} className="rounded-xl border p-4 flex items-center gap-3">
                     {fact.icon}
@@ -216,6 +217,12 @@ export default function FloodDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* New card to display the explainable AI output */}
+            <div className={`${cardBg} p-6 shadow-md rounded-xl`}>
+              <h3 className="mb-4 text-lg font-medium text-blue-600">Flood Risk Explanation</h3>
+              <p className="text-gray-700">{explainableFactor}</p>
             </div>
           </div>
         </div> {/* End Main Content */}
