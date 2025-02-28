@@ -11,7 +11,7 @@ from sklearn.model_selection import TimeSeriesSplit
 import uvicorn
 
 app = FastAPI()
- 
+
 # Enable CORS for your React front end
 app.add_middleware(
     CORSMiddleware,
@@ -23,11 +23,24 @@ app.add_middleware(
 
 MODEL_FILE = "prophet_model.pkl"
 TRAIN_FILE = "prophet_train.csv"
+THRESHOLD_FILE = "water_area_threshold.txt"
 
 # Global variables for extra regressor models
 temperature_model = None
 humidity_model = None
 rainfall_model = None
+
+def load_threshold():
+    try:
+        with open(THRESHOLD_FILE, "r") as f:
+            content = f.read().strip()
+            parts = content.split(":")
+            if len(parts) >= 2:
+                threshold_str = parts[1].strip()
+                return float(threshold_str)
+    except Exception as e:
+        print("Error loading threshold:", e)
+    return None
 
 def load_and_train_model():
     global temperature_model, humidity_model, rainfall_model
@@ -162,6 +175,39 @@ model_info = load_and_train_model()
 prophet_model = model_info["model"]
 prophet_train = model_info["prophet_train"]
 
+def calculate_flood_effect_on_land_cover_and_usage(water_area, risk_level):
+    """
+    Simulate the effects of flooding on land cover and land usage.
+    These outputs represent how a flood may damage natural vegetation (land cover)
+    and disrupt the way land is used (land usage) after a flood event.
+    """
+    if risk_level == "High Risk":
+        return {
+            "land_cover_effect": "Significant loss of vegetation cover with increased open water areas",
+            "land_usage_effect": "Severe disruption in agricultural, residential, and commercial activities",
+            "effect_explanation": (
+                "The high flood risk has led to extensive damage. Natural vegetation is largely washed away, "
+                "and the usability of land is compromised, necessitating urgent recovery measures."
+            )
+        }
+    elif risk_level == "Moderate Risk":
+        return {
+            "land_cover_effect": "Moderate reduction in vegetation with some temporary waterlogging",
+            "land_usage_effect": "Noticeable impact on agriculture and urban functionality with partial disruptions",
+            "effect_explanation": (
+                "Moderate flooding has resulted in noticeable damage to vegetation and temporary changes in land usage, "
+                "with recovery expected over time."
+            )
+        }
+    else:
+        return {
+            "land_cover_effect": "Minimal damage to natural vegetation",
+            "land_usage_effect": "Negligible impact on land usage, conditions remain largely stable",
+            "effect_explanation": (
+                "Low flood risk causes little to no damage to land cover or usage, preserving the natural state."
+            )
+        }
+
 @app.get("/predict")
 async def get_prediction(date: str = Query(..., description="Forecast end date (YYYY-MM-DD)")):
     try:
@@ -208,16 +254,28 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     row = forecast_for_date.iloc[0]
     water_area = row["yhat"]
 
-    # Risk thresholds: <7.5 => Low, 7.5–15 => Moderate, >=15 => High
-    if water_area < 7.5:
-        risk_level = "Low Risk"
-        alerts = ["No flood warning", "Continue normal activities"]
-    elif water_area < 9.0:
-        risk_level = "Moderate Risk"
-        alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+    # Determine risk based on the scaler threshold (if available)
+    threshold = load_threshold()
+    if threshold is not None:
+        if water_area < 0.8 * threshold:
+            risk_level = "Low Risk"
+            alerts = ["No flood warning", "Continue normal activities"]
+        elif water_area < threshold:
+            risk_level = "Moderate Risk"
+            alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+        else:
+            risk_level = "High Risk"
+            alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
     else:
-        risk_level = "High Risk"
-        alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
+        if water_area < 7.5:
+            risk_level = "Low Risk"
+            alerts = ["No flood warning", "Continue normal activities"]
+        elif water_area < 9.0:
+            risk_level = "Moderate Risk"
+            alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+        else:
+            risk_level = "High Risk"
+            alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
 
     # Predict additional parameters using separate models
     if temperature_model is not None:
@@ -238,11 +296,44 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     else:
         predicted_rainfall = None
 
-    # Prepare chart data from January 1 of the forecast year to user_input_date
+    # Compute explainable factor by comparing predicted values to historical averages
+    deviations = {}
+    if predicted_rainfall is not None and "Rainfall" in prophet_train.columns:
+        rainfall_mean = prophet_train["Rainfall"].mean()
+        rainfall_std = prophet_train["Rainfall"].std()
+        if rainfall_std > 0 and predicted_rainfall > rainfall_mean:
+            deviations["Rainfall"] = (predicted_rainfall - rainfall_mean) / rainfall_std
+    if predicted_temperature is not None and "Average_Temperature" in prophet_train.columns:
+        temp_mean = prophet_train["Average_Temperature"].mean()
+        temp_std = prophet_train["Average_Temperature"].std()
+        if temp_std > 0 and predicted_temperature > temp_mean:
+            deviations["Temperature"] = (predicted_temperature - temp_mean) / temp_std
+    if predicted_humidity is not None and "Average_Humidity" in prophet_train.columns:
+        hum_mean = prophet_train["Average_Humidity"].mean()
+        hum_std = prophet_train["Average_Humidity"].std()
+        if hum_std > 0 and predicted_humidity > hum_mean:
+            deviations["Humidity"] = (predicted_humidity - hum_mean) / hum_std
+
+    if deviations:
+        main_factor = max(deviations, key=deviations.get)
+        deviation_value = deviations[main_factor]
+        explanation_text = (
+            f"The main factor contributing to the flood risk is {main_factor}. "
+            f"It is {deviation_value:.2f} standard deviations above its average level, "
+            f"indicating an abnormal increase which may be driving the high water area."
+        )
+    else:
+        main_factor = "None"
+        explanation_text = "No single factor stands out as abnormal compared to historical averages."
+
+    # Prepare chart data from January 1 of the forecast year to the input date
     year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
     chart_df = future_forecast[(future_forecast["ds"] >= year_start) & (future_forecast["ds"] <= user_input_date)].copy()
     chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
     chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
+
+    # Calculate flood effects on land cover and land usage due to the flood
+    flood_effect = calculate_flood_effect_on_land_cover_and_usage(water_area, risk_level)
 
     result = {
         "date": str(user_input_date.date()),
@@ -253,7 +344,7 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
         "predicted_temperature": predicted_temperature,
         "predicted_humidity": predicted_humidity,
         "predicted_rainfall": predicted_rainfall,
-        "current_water_area_km2": float(round(water_area, 2)),  # placeholder
+        "current_water_area_km2": float(round(water_area, 2)),
         "rainfall_mm": predicted_rainfall if predicted_rainfall is not None else 0,
         "prediction_interval": {
             "lower": float(round(row["yhat_lower"], 2)),
@@ -267,7 +358,12 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
             ]
             if reg in future.columns
         },
-        "chart_data": chart_data
+        "chart_data": chart_data,
+        "explainable_factor": {
+            "factor": main_factor,
+            "explanation": explanation_text
+        },
+        "flood_effect": flood_effect  # NEW: effects on land cover & usage due to the flood
     }
     return result
 
