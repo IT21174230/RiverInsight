@@ -157,11 +157,7 @@ def return_to_hp(year, quarter):
         m_cache.set(cache_key, (predictions, maps))
 
         unscaled_predictions = scaler_ts.inverse_transform(predictions)
-
-        # predictions in meteres 
-
         transformed_predictions = (unscaled_predictions / 12) * 0.625
-
         predictions_df = pd.DataFrame({'year': years, 'quarter': quarters})
         targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
 
@@ -169,9 +165,11 @@ def return_to_hp(year, quarter):
             predictions_df[col] = transformed_predictions[:, i]
 
         data_cache.set('raw_predictions', predictions_df)
+
         predictions_df[targets] = predictions_df[targets] - inti_values[targets].values
         predictions_df[targets] = (predictions_df[targets] / 12) * 0.625
         return predictions_df
+      
     except Exception as e:
       return f'no predictions generated due to \n{e}'
   else:

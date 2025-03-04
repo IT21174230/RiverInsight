@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { GoogleMap, GroundOverlay, useJsApiLoader, InfoWindow, Marker } from "@react-google-maps/api";
+import "./MapWithOverlay.css"; // Import the CSS file
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -41,12 +42,14 @@ const MapWithOverlay = () => {
     setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
   }, []);
 
-  if (!isLoaded) return <div>Loading...</div>;
+  if (!isLoaded) return <div className="loading">Loading...</div>;
 
   return (
-    <div>
+    <div className="map-container">
       <GoogleMap mapContainerStyle={mapContainerStyle} zoom={15} center={center}>
-        {imageUrl && <GroundOverlay bounds={overlayBounds} url={imageUrl} opacity={0.7} />}
+        {imageUrl && (
+          <GroundOverlay className="overlay-image" bounds={overlayBounds} url={imageUrl} opacity={0.7} />
+        )}
 
         {/* Small transparent markers to detect hover */}
         {overlayPoints.map((point, index) => (
@@ -55,7 +58,7 @@ const MapWithOverlay = () => {
             position={{ lat: point.lat, lng: point.lng }}
             icon={{
               url: "https://maps.gstatic.com/mapfiles/transparent.png", // Invisible icon, but interactive
-              scaledSize: new window.google.maps.Size(20, 20), // Make sure it's large enough to detect hover
+              scaledSize: new window.google.maps.Size(20, 20),
             }}
             onMouseOver={() => setHoverData(point)}
             onMouseOut={() => setHoverData(null)}
@@ -65,7 +68,7 @@ const MapWithOverlay = () => {
         {/* InfoWindow appears on hover */}
         {hoverData && (
           <InfoWindow position={{ lat: hoverData.lat, lng: hoverData.lng }}>
-            <div>
+            <div className="info-window">
               <strong>Point Data</strong>
               <p>{hoverData.data}</p>
               <p>Latitude: {hoverData.lat}, Longitude: {hoverData.lng}</p>
