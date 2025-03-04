@@ -4,7 +4,7 @@ import os
 import shutil
 from utils.meander_migration import return_to_hp
 from utils.meander_migration_xai import clear_images, send_map_to_api
-from utils.com_cache import m_cache, init_cache
+from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 
@@ -24,6 +24,7 @@ def clean_up():
     
     # Clear cache
     m_cache.clear()
+    data_cache.clear()
     print("Cleared all cache")
     
 atexit.register(clean_up)

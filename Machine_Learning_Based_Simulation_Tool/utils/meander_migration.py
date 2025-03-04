@@ -4,7 +4,7 @@ import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
-from utils.com_cache import m_cache
+from utils.com_cache import m_cache, data_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
@@ -22,6 +22,8 @@ scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
 pca=joblib.load(pca)
 past_vals=pd.read_csv(past_migration_vals, index_col=0)
+
+inti_values=init_values = past_vals.iloc[0]
 
 model.training=False
 
@@ -166,13 +168,10 @@ def return_to_hp(year, quarter):
         for i, col in enumerate(targets):
             predictions_df[col] = transformed_predictions[:, i]
 
-        shift_df = predictions_df.copy()
-        shift_df[targets] = shift_df[targets].diff()
-        # to keep the first row as it is
-        # TODO: FIX THE 1ST ROW
-        # shift_df.iloc[0] = predictions_df.iloc[0]
-
-        return shift_df
+        data_cache.set('raw_predictions', predictions_df)
+        predictions_df[targets] = predictions_df[targets] - inti_values[targets].values
+        predictions_df[targets] = (predictions_df[targets] / 12) * 0.625
+        return predictions_df
     except Exception as e:
       return f'no predictions generated due to \n{e}'
   else:
