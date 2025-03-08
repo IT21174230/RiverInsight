@@ -27,6 +27,8 @@ export default function FloodDashboard() {
       humidity: "",
       windSpeed: ""
     },
+    explainableFactor: "",
+    floodEffect: {}  // NEW: flood effects on land cover and land usage
   });
   const [selectedDate, setSelectedDate] = useState("2025-03-15");
   const [loading, setLoading] = useState(false);
@@ -57,6 +59,8 @@ export default function FloodDashboard() {
               ? `${data.predicted_wind_speed} km/h`
               : "N/A"
           },
+          explainableFactor: data.explainable_factor.explanation || "",
+          floodEffect: data.flood_effect  // NEW: set flood effect data
         });
         setLoading(false);
       })
@@ -87,7 +91,7 @@ export default function FloodDashboard() {
     }
   };
 
-  const { date, predictedWaterArea, floodWarning, chartData, riskLevel, alerts, mainFacts } = dashboardData;
+  const { date, predictedWaterArea, floodWarning, chartData, riskLevel, alerts, mainFacts, explainableFactor, floodEffect } = dashboardData;
 
   return (
     <div className={`${outerBg} min-h-screen p-6 flex justify-center relative`}>
@@ -118,7 +122,7 @@ export default function FloodDashboard() {
           </button>
         </div>
 
-        <div className="mb-8 grid pt-5 grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-center gap-2 rounded-xl bg-blue-600 p-4 text-white">
             <Calendar className="h-4 w-4" />
             <span>{date}</span>
@@ -133,26 +137,48 @@ export default function FloodDashboard() {
           </div>
         </div>
 
+        {/* Two-column layout:
+            Left Column: Chart and Flood Effects on Land Cover & Usage (placed under the graph)
+            Right Column: Other cards (Risk level, Alerts, Main Facts, Flood Risk Explanation)
+        */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10">
-          <div className={`${cardBg} shadow-md rounded-xl`}>
-            <h2 className="mb-4 pl-6 text-lg font-medium text-blue-600">
-              Flood Details (Jan to {date})
-            </h2>
-            <div className="h-[325px] pr-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Area type="monotone" dataKey="value" stroke="#2563eb" fill="url(#colorValue)" />
-                </AreaChart>
-              </ResponsiveContainer>
+          <div className="flex flex-col gap-6">
+            <div className={`${cardBg} shadow-md rounded-xl`}>
+              <h2 className="mb-4 pl-6 text-lg font-medium text-blue-600">
+                Flood Details (Jan to {date})
+              </h2>
+              <div className="h-[325px] pr-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Area type="monotone" dataKey="value" stroke="#2563eb" fill="url(#colorValue)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* New card: Flood Effects on Land Cover & Land Usage placed under the chart */}
+            <div className={`${cardBg} p-6 shadow-md rounded-xl`}>
+              <h3 className="mb-4 text-lg font-medium text-blue-600">
+                Flood Effects on Land Cover & Land Usage
+              </h3>
+              <p className="text-gray-700">
+                <strong>Land Cover Effect:</strong> {floodEffect?.land_cover_effect || "N/A"}
+              </p>
+              <p className="text-gray-700">
+                <strong>Land Usage Effect:</strong> {floodEffect?.land_usage_effect || "N/A"}
+              </p>
+              <p className="text-gray-700">
+                {floodEffect?.effect_explanation || ""}
+              </p>
             </div>
           </div>
 
@@ -205,7 +231,6 @@ export default function FloodDashboard() {
                     label: "Humidity",
                     value: mainFacts.humidity
                   },
-                  
                 ].map((fact, idx) => (
                   <div key={idx} className="rounded-xl border p-4 flex items-center gap-3">
                     {fact.icon}
@@ -217,8 +242,14 @@ export default function FloodDashboard() {
                 ))}
               </div>
             </div>
+
+            {/* Flood Risk Explanation Card */}
+            <div className={`${cardBg} p-6 shadow-md rounded-xl`}>
+              <h3 className="mb-4 text-lg font-medium text-blue-600">Flood Risk Explanation</h3>
+              <p className="text-gray-700">{explainableFactor}</p>
+            </div>
           </div>
-        </div> {/* End Main Content */}
+        </div> {/* End of two-column layout */}
       </div>
     </div>
   );

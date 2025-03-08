@@ -5,13 +5,13 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from prophet import Prophet
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from itertools import product
 from sklearn.model_selection import TimeSeriesSplit
 import uvicorn
 
 app = FastAPI()
- 
+
 # Enable CORS for your React front end
 app.add_middleware(
     CORSMiddleware,
@@ -24,26 +24,113 @@ app.add_middleware(
 MODEL_FILE = "prophet_model.pkl"
 TRAIN_FILE = "prophet_train.csv"
 
-# Global variables for extra regressor models
+# Global variables for extra regressor models and evaluation metrics
 temperature_model = None
 humidity_model = None
 rainfall_model = None
+evaluation_metrics = {}
+
+def compute_test_metrics(model):
+    # Re-read the full dataset and re-compute all features (as in training)
+    data = pd.read_csv("master2.csv")
+    data["date"] = pd.to_datetime(data["date"])
+    data = data.sort_values(by="date")
+    
+    # Date-based features
+    data["month"] = data["date"].dt.month
+    data["day_of_year"] = data["date"].dt.dayofyear
+    data["month_sin"] = np.sin(2 * np.pi * data["month"] / 12)
+    data["month_cos"] = np.cos(2 * np.pi * data["month"] / 12)
+    data["day_sin"] = np.sin(2 * np.pi * data["day_of_year"] / 365)
+    data["day_cos"] = np.cos(2 * np.pi * data["day_of_year"] / 365)
+
+    # Lag features
+    data["lag1"] = data["water_area_km2"].shift(1)
+    data["lag3"] = data["water_area_km2"].shift(3)
+    data["lag7"] = data["water_area_km2"].shift(7)
+    data["lag14"] = data["water_area_km2"].shift(14)
+
+    # Rolling and cumulative features
+    data["rolling_avg_7"] = data["water_area_km2"].rolling(window=7).mean()
+    data["rolling_median_7"] = data["water_area_km2"].rolling(window=7).median()
+    data["rolling_std_7"] = data["water_area_km2"].rolling(window=7).std()
+    data["expanding_mean"] = data["water_area_km2"].expanding().mean()
+    data["cumulative_rainfall"] = data["Rainfall"].cumsum()
+    data["rainfall_ndwi_interaction"] = data["Rainfall"] * data["mean_ndwi"]
+    data["extreme_rainfall"] = (data["Rainfall"] > data["Rainfall"].quantile(0.95)).astype(int)
+
+    # Monthly aggregates
+    data["month_year"] = data["date"].dt.to_period("M")
+    monthly_aggregates = data.groupby("month_year")[["water_area_km2"]].agg(["mean", "max"]).reset_index()
+    monthly_aggregates.columns = ["month_year", "monthly_mean", "monthly_max"]
+    data = pd.merge(data, monthly_aggregates, how="left", on="month_year")
+    data = data.ffill()
+
+    # Use last 30% as test data
+    test_data = data.iloc[int(len(data) * 0.7):].dropna()
+    prophet_test = test_data.rename(columns={"date": "ds", "water_area_km2": "y"})
+    
+    # Updated list of additional regressors
+    additional_regressors = [
+        "Average_Temperature", "Rainfall", "lag1", "lag3", "lag7", "lag14",
+        "rolling_avg_7", "rolling_median_7", "rolling_std_7", "expanding_mean",
+        "cumulative_rainfall", "rainfall_ndwi_interaction", "extreme_rainfall",
+        "month_sin", "month_cos", "day_sin", "day_cos",
+        "monthly_mean", "monthly_max", "Average_Humidity", "Max_Humidity",
+        "Average_Wind_Speed", "Max_Wind_Speed", "Max_Temperature"
+    ]
+    for reg in additional_regressors:
+        if reg in test_data.columns:
+            prophet_test[reg] = test_data[reg]
+    
+    forecast_test = model.predict(prophet_test)
+    mae_test = mean_absolute_error(prophet_test["y"], forecast_test["yhat"])
+    mse_test = mean_squared_error(prophet_test["y"], forecast_test["yhat"])
+    r2_test = r2_score(prophet_test["y"], forecast_test["yhat"])
+    evaluation_metrics.update({
+        "mae_test": mae_test,
+        "rmse_test": np.sqrt(mse_test),
+        "r2_test": r2_test
+    })
+    print("Test Evaluation Metrics:")
+    print(f"MAE: {mae_test:.2f}")
+    print(f"RMSE: {np.sqrt(mse_test):.2f}")
+    print(f"R²: {r2_test:.2f}")
 
 def load_and_train_model():
-    global temperature_model, humidity_model, rainfall_model
+    global temperature_model, humidity_model, rainfall_model, evaluation_metrics
 
     if os.path.exists(MODEL_FILE) and os.path.exists(TRAIN_FILE):
         with open(MODEL_FILE, "rb") as fin:
             model = pickle.load(fin)
         prophet_train = pd.read_csv(TRAIN_FILE, parse_dates=["ds"])
         print("Loaded saved water area model and training data from disk.")
+
+        # Compute training metrics
+        forecast_train = model.predict(prophet_train)
+        mae_train = mean_absolute_error(prophet_train["y"], forecast_train["yhat"])
+        mse_train = mean_squared_error(prophet_train["y"], forecast_train["yhat"])
+        rmse_train = np.sqrt(mse_train)
+        r2_train = r2_score(prophet_train["y"], forecast_train["yhat"])
+        evaluation_metrics.update({
+            "mae_train": mae_train,
+            "rmse_train": rmse_train,
+            "r2_train": r2_train
+        })
+        print("Training Evaluation Metrics:")
+        print(f"MAE: {mae_train:.2f}")
+        print(f"RMSE: {rmse_train:.2f}")
+        print(f"R²: {r2_train:.2f}")
+        
+        # Compute test metrics
+        compute_test_metrics(model)
     else:
         print("Training water area model from scratch...")
         data = pd.read_csv("master2.csv")
         data["date"] = pd.to_datetime(data["date"])
         data = data.sort_values(by="date")
 
-        # Create date-based features
+        # Date-based features
         data["month"] = data["date"].dt.month
         data["day_of_year"] = data["date"].dt.dayofyear
         data["month_sin"] = np.sin(2 * np.pi * data["month"] / 12)
@@ -57,7 +144,7 @@ def load_and_train_model():
         data["lag7"] = data["water_area_km2"].shift(7)
         data["lag14"] = data["water_area_km2"].shift(14)
 
-        # Rolling/cumulative features
+        # Rolling and cumulative features
         data["rolling_avg_7"] = data["water_area_km2"].rolling(window=7).mean()
         data["rolling_median_7"] = data["water_area_km2"].rolling(window=7).median()
         data["rolling_std_7"] = data["water_area_km2"].rolling(window=7).std()
@@ -71,28 +158,26 @@ def load_and_train_model():
         monthly_aggregates = data.groupby("month_year")[["water_area_km2"]].agg(["mean", "max"]).reset_index()
         monthly_aggregates.columns = ["month_year", "monthly_mean", "monthly_max"]
         data = pd.merge(data, monthly_aggregates, how="left", on="month_year")
-        
         data = data.ffill()
 
         # Use first 70% as training data
         train_data = data.iloc[:int(len(data) * 0.7)].dropna()
         prophet_train = train_data.rename(columns={"date": "ds", "water_area_km2": "y"})
 
-        # Additional regressors used in water area model
+        # Updated additional regressors list
         additional_regressors = [
-            "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity",
-            "Max_Temperature",
-            "lag1", "lag3", "lag7", "lag14",
+            "Average_Temperature", "Rainfall", "lag1", "lag3", "lag7", "lag14",
             "rolling_avg_7", "rolling_median_7", "rolling_std_7", "expanding_mean",
             "cumulative_rainfall", "rainfall_ndwi_interaction", "extreme_rainfall",
             "month_sin", "month_cos", "day_sin", "day_cos",
-            "monthly_mean", "monthly_max"
+            "monthly_mean", "monthly_max", "Average_Humidity", "Max_Humidity",
+            "Average_Wind_Speed", "Max_Wind_Speed", "Max_Temperature"
         ]
         for reg in additional_regressors:
             if reg in train_data.columns:
                 prophet_train[reg] = train_data[reg]
 
-        # Hyperparameter tuning via cross-validation for water area model
+        # Hyperparameter tuning using cross‑validation
         tscv = TimeSeriesSplit(n_splits=2)
         param_grid = {
             "changepoint_prior_scale": [0.01, 0.1, 0.5, 1.0],
@@ -121,8 +206,9 @@ def load_and_train_model():
                 best_score = avg_cv_score
                 best_params = (cps, sps)
         optimal_changepoint_prior_scale, optimal_seasonality_prior_scale = best_params
+        print(f"Optimal Hyperparameters: changepoint_prior_scale={optimal_changepoint_prior_scale}, seasonality_prior_scale={optimal_seasonality_prior_scale}")
 
-        # Train the final water area model
+        # Train the final model with optimal hyperparameters
         model = Prophet(
             changepoint_prior_scale=optimal_changepoint_prior_scale,
             seasonality_prior_scale=optimal_seasonality_prior_scale,
@@ -133,13 +219,31 @@ def load_and_train_model():
                 model.add_regressor(reg)
         model.fit(prophet_train)
 
+        # Compute training metrics
+        forecast_train = model.predict(prophet_train)
+        mae_train = mean_absolute_error(prophet_train["y"], forecast_train["yhat"])
+        mse_train = mean_squared_error(prophet_train["y"], forecast_train["yhat"])
+        rmse_train = np.sqrt(mse_train)
+        r2_train = r2_score(prophet_train["y"], forecast_train["yhat"])
+        evaluation_metrics.update({
+            "mae_train": mae_train,
+            "rmse_train": rmse_train,
+            "r2_train": r2_train
+        })
+        print("Training Evaluation Metrics:")
+        print(f"MAE: {mae_train:.2f}")
+        print(f"RMSE: {rmse_train:.2f}")
+        print(f"R²: {r2_train:.2f}")
+
+        # Compute test metrics
+        compute_test_metrics(model)
+
         with open(MODEL_FILE, "wb") as fout:
             pickle.dump(model, fout)
         prophet_train.to_csv(TRAIN_FILE, index=False)
         print("Water area model training complete. Saved to disk.")
 
-    # Train separate models for extra regressors:
-    global temperature_model, humidity_model, rainfall_model
+    # Train separate models for extra regressors
     if "Average_Temperature" in prophet_train.columns:
         temp_df = prophet_train[["ds", "Average_Temperature"]].dropna().rename(columns={"Average_Temperature": "y"})
         temperature_model = Prophet(daily_seasonality=True)
@@ -171,10 +275,14 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     
     last_date = prophet_train["ds"].max()
     if user_input_date <= last_date:
-        raise HTTPException(status_code=400, detail=f"Input date must be after the last training date: {last_date.date()}")
-
+        raise HTTPException(
+            status_code=400,
+            detail=f"Input date must be after the last training date: {last_date.date()}"
+        )
+    
     forecast_days = (user_input_date - last_date).days
     future = prophet_model.make_future_dataframe(periods=forecast_days, freq="D")
+    # Compute date-based features for future dates
     future["month"] = future["ds"].dt.month
     future["day_of_year"] = future["ds"].dt.dayofyear
     future["month_sin"] = np.sin(2 * np.pi * future["month"] / 12)
@@ -182,16 +290,17 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     future["day_sin"] = np.sin(2 * np.pi * future["day_of_year"] / 365)
     future["day_cos"] = np.cos(2 * np.pi * future["day_of_year"] / 365)
 
-    # Simulate future regressor values using monthly averages
+    # Simulate future regressor values using monthly averages (including wind speed features)
     regressors_to_simulate = [
-        "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity", "Max_Temperature"
+        "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity",
+        "Max_Temperature", "Average_Wind_Speed", "Max_Wind_Speed"
     ]
     for reg in regressors_to_simulate:
         if reg in prophet_train.columns:
             monthly_avg = prophet_train.groupby(prophet_train["ds"].dt.month)[reg].mean().to_dict()
             future[reg] = future["ds"].dt.month.map(monthly_avg)
     
-    # For lag and rolling features, use last observed value
+    # For lag and rolling features, use the last observed value
     last_value = prophet_train["y"].iloc[-1]
     for reg in ["lag1", "lag3", "lag7", "lag14"]:
         future[reg] = last_value
@@ -208,7 +317,7 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     row = forecast_for_date.iloc[0]
     water_area = row["yhat"]
 
-    # Risk thresholds: <7.5 => Low, 7.5–15 => Moderate, >=15 => High
+    # Define risk thresholds
     if water_area < 7.5:
         risk_level = "Low Risk"
         alerts = ["No flood warning", "Continue normal activities"]
@@ -238,11 +347,35 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
     else:
         predicted_rainfall = None
 
-    # Prepare chart data from January 1 of the forecast year to user_input_date
+    # Simulate predicted wind speed using monthly averages if available
+    if "Average_Wind_Speed" in prophet_train.columns:
+        monthly_avg_wind = prophet_train.groupby(prophet_train["ds"].dt.month)["Average_Wind_Speed"].mean().to_dict()
+        predicted_wind_speed = float(round(monthly_avg_wind.get(user_input_date.month, 0), 2))
+    else:
+        predicted_wind_speed = None
+
+    # Prepare chart data (from the beginning of the current year to forecast date)
     year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
     chart_df = future_forecast[(future_forecast["ds"] >= year_start) & (future_forecast["ds"] <= user_input_date)].copy()
     chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
     chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
+
+    # Define explainable factor and flood effects (dummy values)
+    explainable_factor = {
+        "explanation": "The flood risk is primarily driven by rising water levels and heavy rainfall patterns."
+    }
+    flood_effect = {
+        "land_cover_effect": "Significant impact on vegetation and soil erosion.",
+        "land_usage_effect": "Urban and agricultural areas may face disruption.",
+        "effect_explanation": "Flooding can result in long-term changes in land cover and economic losses."
+    }
+
+    # Print evaluation metrics on each GET request
+    print("GET /predict request for date:", user_input_date.date())
+    print("Training Evaluation Metrics:")
+    print(f"MAE: {evaluation_metrics.get('mae_train', None):.2f}, RMSE: {evaluation_metrics.get('rmse_train', None):.2f}, R²: {evaluation_metrics.get('r2_train', None):.2f}")
+    print("Test Evaluation Metrics:")
+    print(f"MAE: {evaluation_metrics.get('mae_test', None):.2f}, RMSE: {evaluation_metrics.get('rmse_test', None):.2f}, R²: {evaluation_metrics.get('r2_test', None):.2f}")
 
     result = {
         "date": str(user_input_date.date()),
@@ -253,7 +386,8 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
         "predicted_temperature": predicted_temperature,
         "predicted_humidity": predicted_humidity,
         "predicted_rainfall": predicted_rainfall,
-        "current_water_area_km2": float(round(water_area, 2)),  # placeholder
+        "predicted_wind_speed": predicted_wind_speed,
+        "current_water_area_km2": float(round(water_area, 2)),
         "rainfall_mm": predicted_rainfall if predicted_rainfall is not None else 0,
         "prediction_interval": {
             "lower": float(round(row["yhat_lower"], 2)),
@@ -263,11 +397,14 @@ async def get_prediction(date: str = Query(..., description="Forecast end date (
             reg: float(round(future[reg].iloc[-1], 2))
             for reg in [
                 "Average_Temperature", "Rainfall", "Average_Humidity",
-                "Max_Humidity", "Max_Temperature"
+                "Max_Humidity", "Max_Temperature", "Average_Wind_Speed", "Max_Wind_Speed"
             ]
             if reg in future.columns
         },
-        "chart_data": chart_data
+        "chart_data": chart_data,
+        "evaluation_metrics": evaluation_metrics,
+        "explainable_factor": explainable_factor,
+        "flood_effect": flood_effect
     }
     return result
 
