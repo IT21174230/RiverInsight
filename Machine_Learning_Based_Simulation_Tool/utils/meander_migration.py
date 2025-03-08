@@ -167,7 +167,8 @@ def return_to_hp(year, quarter):
         data_cache.set('raw_predictions', predictions_df)
 
         predictions_df[targets] = predictions_df[targets] - inti_values[targets].values
-        predictions_df[targets] = (predictions_df[targets] / 12) * 0.625
+        predictions_df[targets] = predictions_df[targets].astype(float).round(4)
+        # predictions_df = predictions_df.round(4)
         return predictions_df
       
     except Exception as e:
