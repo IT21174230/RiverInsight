@@ -10,6 +10,8 @@ function MorphologicalPredictions() {
   const [showTable, setShowTable] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     // Close context menu on clicking outside
@@ -34,21 +36,22 @@ function MorphologicalPredictions() {
     }
   };
 
-  const handleRightClick = (event, row) => {
+  const handleRightClick = (event, row, index) => {
     event.preventDefault();
-    setSelectedRow(row);
+    setSelectedRow({ ...row, index }); // Store index for API call
     setContextMenu({
       x: event.pageX,
       y: event.pageY,
     });
   };
 
-  const handleExplainInference = () => {
-    alert(`Inference for year ${selectedRow.year}, quarter ${selectedRow.quarter}:
-      - Control Point 1: ${selectedRow.c1_dist}
-      - Control Point 2: ${selectedRow.c2_dist}
-      - Control Point 3: ${selectedRow.c3_dist}
-    `);
+  const fetchInferenceImage = async () => {
+    if (!selectedRow) return;
+
+    const imageUrl = `http://127.0.0.1:5000/meander_migration/params/explain_migration/?year=${year}&quart=${quarter}&idx=${selectedRow.index}`;
+    
+    setImageSrc(imageUrl);
+    setShowImageModal(true);
     setContextMenu(null);
   };
 
@@ -61,7 +64,7 @@ function MorphologicalPredictions() {
           <input
             type="number"
             value={year}
-            onChange={(e) => setYear(e.target.value)}
+            onChange={(e) => setYear(Number(e.target.value))}
             className="input-field"
             min="1900"
             max="2100"
@@ -71,7 +74,7 @@ function MorphologicalPredictions() {
           Quarter:
           <select
             value={quarter}
-            onChange={(e) => setQuarter(e.target.value)}
+            onChange={(e) => setQuarter(Number(e.target.value))}
             className="input-field"
           >
             <option value="1">Q1</option>
@@ -109,7 +112,7 @@ function MorphologicalPredictions() {
                 </thead>
                 <tbody>
                   {tableData.map((row, index) => (
-                    <tr key={index} onContextMenu={(e) => handleRightClick(e, row)}>
+                    <tr key={index} onContextMenu={(e) => handleRightClick(e, row, index)}>
                       <td>{row.year}</td>
                       <td>{row.quarter}</td>
                       <td>{row.c1_dist}</td>
@@ -123,6 +126,11 @@ function MorphologicalPredictions() {
                 </tbody>
               </table>
             </div>
+            <div className="placeholder-text">
+              <p>Please right-click on desired row to explain the inference</p>
+              <p>A heatmap is given, visualizing the effects of previous four time steps on
+                the inference. The inferences are generated using a Temporal Convolutional Model (TCN)</p>
+            </div>
           </div>
         )}
       </div>
@@ -131,12 +139,24 @@ function MorphologicalPredictions() {
         <div
           className="context-menu"
           style={{
-            top: contextMenu.y + "px",
-            left: contextMenu.x + "px",
+            top: `${contextMenu.y}px`,
+            left: `${contextMenu.x}px`,
           }}
-          onClick={handleExplainInference}
         >
-          Explain Inference
+          <button onClick={fetchInferenceImage} className="context-menu-option">
+            Show Inference Explanation
+          </button>
+        </div>
+      )}
+
+      {showImageModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setShowImageModal(false)}>
+              &times;
+            </span>
+            <img src={imageSrc} alt="Inference Explanation" className="inference-image" />
+          </div>
         </div>
       )}
     </div>

@@ -239,20 +239,68 @@
 }
 
 /* XAI menu */
+.context-menu-option {
+  background: white;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: black; /* Change to black */
+  text-decoration: none; /* Remove underline */
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.context-menu-option:hover {
+  background-color: #f0f0f0; /* Light gray hover effect */
+}
+
 .context-menu {
   position: absolute;
   background: white;
-  border: 1px solid #1a6b4b;
-  border-radius: 5px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-  padding: 8px 12px;
-  cursor: pointer;
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  padding: 10px;
   z-index: 1000;
-  font-weight: bold;
-  color: #1a6b4b;
 }
 
-.context-menu:hover {
-  background: #1a6b4b;
-  color: white;
+.context-menu-option {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #007bff;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.inference-image {
+  max-width: 100%;
+  max-height: 80vh;
 }
