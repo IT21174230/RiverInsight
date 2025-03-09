@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Importing CORS
 import atexit
 import os
 import shutil
@@ -11,6 +12,7 @@ from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
@@ -75,16 +77,23 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# New route for generating heatmap
-@app.route('/predict_erosion/heatmap', methods=['GET'])
+# route for generating heatmap
+@app.route('/predict_erosion/heatmap', methods=['POST'])
 def predict_heatmap():
     try:
-        # Parse input parameters
-        query = request.args.to_dict()
-        start_year = int(query['year'])
-        start_quarter = int(query['quarter'])
-        points = list(map(int, query.get('points', '').split(',')))  # Example: "1,5,10,20"
-        timesteps = int(query.get('timesteps', 5))  # Default to 5 timesteps if not provided
+        # Parse input parameters from JSON body
+        request_data = request.get_json()
+        if not request_data:
+            return jsonify({'error': 'Invalid input, JSON body expected.'}), 400
+
+        start_year = int(request_data['year'])
+        start_quarter = int(request_data['quarter'])
+        points = list(map(int, request_data.get('points', [])))  # Example: [1, 5, 10, 20]
+        timesteps = int(request_data.get('timesteps', 5))  # Default to 5 timesteps if not provided
+
+        # Validate input
+        if not points:
+            return jsonify({'error': 'Points must be a non-empty list of integers.'}), 400
 
         # Generate the heatmap
         heatmap_image = generate_heatmap_with_timesteps(model, start_year, start_quarter, scaler_year, points, timesteps)
@@ -94,6 +103,7 @@ def predict_heatmap():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

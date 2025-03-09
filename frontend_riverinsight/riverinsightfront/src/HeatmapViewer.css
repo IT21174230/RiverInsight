@@ -1,0 +1,51 @@
+.heatmap-viewer {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .input-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .input-form label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .input-form input {
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .input-form button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .input-form button:hover {
+    background-color: #0056b3;
+  }
+  
+  .error {
+    color: red;
+    margin-bottom: 20px;
+  }
+  
+  .heatmap-container {
+    margin-top: 20px;
+  }
+  
+  .heatmap-container img {
+    max-width: 100%;
+    height: auto;
+  }

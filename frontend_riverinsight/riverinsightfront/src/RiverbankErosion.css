@@ -1,0 +1,109 @@
+.riverbank-erosion {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .form-group input {
+    padding: 8px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 200px;
+  }
+  
+  .submit-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #1a6b4b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .submit-button:hover {
+    background-color: #014421;
+  }
+  
+  .error-message {
+    color: red;
+    margin-top: 10px;
+  }
+  
+  .map-container {
+    height: 500px; /* Set a fixed height for the map */
+    width: 100%;
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Popup styling */
+.popup-container {
+  font-family: Arial, sans-serif;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.popup-container h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.popup-label {
+  font-weight: bold;
+  color: #555;
+}
+
+.popup-value {
+  color: #000;
+}
+
+.legend {
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.legend h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.legend div {
+  margin: 5px 0;
+}
