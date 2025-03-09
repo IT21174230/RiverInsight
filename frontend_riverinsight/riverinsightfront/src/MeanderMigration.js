@@ -9,8 +9,10 @@ const mapContainerStyle = {
   height: "500px",
 };
 
+// Centered on the river location
 const center = { lat: 7.60904, lng: 79.80332 };
 
+// Define map overlay bounds
 const overlayBounds = {
   north: 7.62606,
   south: 7.59595,
@@ -36,7 +38,8 @@ const MapWithOverlay = () => {
   });
 
   const [imageUrl, setImageUrl] = useState("");
-  const [hoverData, setHoverData] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null); // Stores clicked marker data
+  const [manualClose, setManualClose] = useState(false); // Tracks if user closed InfoWindow
 
   useEffect(() => {
     setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
@@ -46,32 +49,49 @@ const MapWithOverlay = () => {
 
   return (
     <div className="map-container">
-      <GoogleMap mapContainerStyle={mapContainerStyle} zoom={15} center={center}>
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        zoom={17} //  Increased zoom for better ground resolution
+        center={center}
+        mapTypeId="satellite" //  Better ground detail (options: 'hybrid', 'terrain', 'roadmap')
+        options={{
+          scaleControl: true, //  Adds scale bar showing meters/km
+          maxZoom: 20, //  Allows higher zoom for clarity
+          minZoom: 15,
+          disableDefaultUI: false, // Show map controls
+          streetViewControl: false,
+          mapTypeControl: true, // Allow switching map types
+        }}
+      >
+        {/* Ground Overlay for better clarity */}
         {imageUrl && (
-          <GroundOverlay className="overlay-image" bounds={overlayBounds} url={imageUrl} opacity={0.7} />
+          <GroundOverlay bounds={overlayBounds} url={imageUrl} opacity={0.8} />
         )}
 
-        {/* Small transparent markers to detect hover */}
+        {/* Markers that trigger InfoWindow on hover */}
         {overlayPoints.map((point, index) => (
           <Marker
             key={index}
             position={{ lat: point.lat, lng: point.lng }}
-            icon={{
-              url: "https://maps.gstatic.com/mapfiles/transparent.png", // Invisible icon, but interactive
-              scaledSize: new window.google.maps.Size(20, 20),
+            onMouseOver={() => {
+              if (!manualClose) setSelectedPoint(point); // Only open if not manually closed
             }}
-            onMouseOver={() => setHoverData(point)}
-            onMouseOut={() => setHoverData(null)}
           />
         ))}
 
-        {/* InfoWindow appears on hover */}
-        {hoverData && (
-          <InfoWindow position={{ lat: hoverData.lat, lng: hoverData.lng }}>
+        {/* InfoWindow stays open until user closes it */}
+        {selectedPoint && (
+          <InfoWindow
+            position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }}
+            onCloseClick={() => {
+              setSelectedPoint(null);
+              setManualClose(true); // Prevent reopening on hover
+            }}
+          >
             <div className="info-window">
               <strong>Point Data</strong>
-              <p>{hoverData.data}</p>
-              <p>Latitude: {hoverData.lat}, Longitude: {hoverData.lng}</p>
+              <p>{selectedPoint.data}</p>
+              <p>Latitude: {selectedPoint.lat}, Longitude: {selectedPoint.lng}</p>
             </div>
           </InfoWindow>
         )}
