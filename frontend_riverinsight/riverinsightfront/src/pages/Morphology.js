@@ -104,10 +104,13 @@ function MorphologicalPredictions() {
                     <th>Quarter</th>
                     <th>Control Point 1</th>
                     <th>Control Point 2</th>
+                    <th>Bend 1 Deviation</th>
                     <th>Control Point 3</th>
                     <th>Control Point 4</th>
+                    <th>Bend 2 Deviation</th>
                     <th>Control Point 7</th>
                     <th>Control Point 8</th>
+                    <th>Bend 4 Deviation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,10 +120,13 @@ function MorphologicalPredictions() {
                       <td>{row.quarter}</td>
                       <td>{row.c1_dist}</td>
                       <td>{row.c2_dist}</td>
+                      <td>{row.bend_1}</td>
                       <td>{row.c3_dist}</td>
                       <td>{row.c4_dist}</td>
+                      <td>{row.bend_2}</td>
                       <td>{row.c7_dist}</td>
                       <td>{row.c8_dist}</td>
+                      <td>{row.bend_3}</td>
                     </tr>
                   ))}
                 </tbody>

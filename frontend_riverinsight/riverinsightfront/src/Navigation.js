@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaWater, FaCompass } from "react-icons/fa";
 
 function Navigation() {
-  const navigate = useNavigate(); // Ensure this is inside a Router context
-
+  const navigate = useNavigate(); 
   return (
     <section className="nav-section">
       <h3>Explore Our Features</h3>

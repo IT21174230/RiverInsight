@@ -136,8 +136,16 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
 def get_past_meandering_values(df, target_year, target_quarter):
   df['year'] = df['name'].apply(lambda x: int(x.split('-')[0]))
   df['quarter'] = df['name'].apply(lambda x: int(x.split('-')[1]))
-  df.drop(columns=['name','c5_dist','c6_dist'], inplace=True)
+
+  columns_to_drop = ['name', 'c5_dist', 'c6_dist']
+  df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
   filtered_df = df[(df["year"] < target_year) | ((df["year"] == target_year) & (df["quarter"] <= target_quarter))]
+  if not filtered_df.empty:
+      numeric_cols = filtered_df.columns.difference(["year", "quarter"])
+      filtered_df[numeric_cols] = ((filtered_df[numeric_cols] - filtered_df.iloc[0][numeric_cols]) * 0.625).astype(float).round(4)
+      filtered_df['bend_1'] = np.abs((filtered_df['c1_dist'] - filtered_df['c2_dist']).astype(float).round(4))
+      filtered_df['bend_2'] = np.abs((filtered_df['c3_dist'] - filtered_df['c4_dist']).astype(float).round(4))
+      filtered_df['bend_3'] = np.abs((filtered_df['c7_dist'] - filtered_df['c8_dist']).astype(float).round(4))
   return filtered_df
 
 def return_to_hp(year, quarter):
@@ -168,12 +176,16 @@ def return_to_hp(year, quarter):
       predictions_df[targets] = predictions_df[targets] - inti_values[targets].values
       predictions_df[targets] = predictions_df[targets].astype(float).round(4)
 
+      predictions_df['bend_1'] = np.abs((predictions_df['c1_dist'] - predictions_df['c2_dist']).astype(float).round(4))
+      predictions_df['bend_2'] = np.abs((predictions_df['c3_dist'] - predictions_df['c4_dist']).astype(float).round(4))
+      predictions_df['bend_3'] = np.abs((predictions_df['c7_dist'] - predictions_df['c8_dist']).astype(float).round(4))
+
       return predictions_df
       
     except Exception as e:
       return f'no predictions generated due to \n{e}'
   else:
-
+    past_vals=pd.read_csv(past_migration_vals, index_col=0)
     return get_past_meandering_values(past_vals, year, quarter)
 
 
