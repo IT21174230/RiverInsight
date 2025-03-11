@@ -12,6 +12,7 @@ function MorphologicalPredictions() {
   const [selectedRow, setSelectedRow] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showPastDataMessage, setShowPastDataMessage] = useState(false);
 
   useEffect(() => {
     // Close context menu on clicking outside
@@ -46,13 +47,20 @@ function MorphologicalPredictions() {
   };
 
   const fetchInferenceImage = async () => {
-    if (!selectedRow) return;
-
-    const imageUrl = `http://127.0.0.1:5000/meander_migration/params/explain_migration/?year=${year}&quart=${quarter}&idx=${selectedRow.index}`;
-    
-    setImageSrc(imageUrl);
-    setShowImageModal(true);
     setContextMenu(null);
+
+    if (year <= 2024) {
+      setShowPastDataMessage(true); // Show past data message
+      setShowImageModal(false);
+    } else {
+      setShowPastDataMessage(false);
+      if (!selectedRow) return;
+
+      const imageUrl = `http://127.0.0.1:5000/meander_migration/params/explain_migration/?year=${year}&quart=${quarter}&idx=${selectedRow.index}`;
+      
+      setImageSrc(imageUrl);
+      setShowImageModal(true);
+    }
   };
 
   return (
@@ -152,6 +160,20 @@ function MorphologicalPredictions() {
           <button onClick={fetchInferenceImage} className="context-menu-option">
             Show Inference Explanation
           </button>
+        </div>
+      )}
+
+      {showPastDataMessage && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setShowPastDataMessage(false)}>
+              &times;
+            </span>
+            <p className="past-data-message">
+              All data for selected year ({year}) contains past values collected using LANDSAT 8 and LANDSAT 5 satellite images.
+              These past values were used to train the predictive model and are not predictions.
+            </p>
+          </div>
         </div>
       )}
 

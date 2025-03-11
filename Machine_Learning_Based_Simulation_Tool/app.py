@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp
+from utils.meander_migration import return_to_hp, get_raw_predictions
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
@@ -44,17 +44,28 @@ def predict_meander():
     df = return_to_hp(y, q)
     try:
         return jsonify(df.to_dict(orient="records"))
-    except:
-        return jsonify(df.to_dict(orient="records"))
-
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 @app.get('/meander_migration/params/explain_migration/')
 def get_saliency():
     query = request.args.to_dict()
     y = int(query['year'])
     q = int(query['quart'])
     map_idx = int(query['idx'])
-    t = send_map_to_api(y, q, map_idx)
-    return t
+    map = send_map_to_api(y, q, map_idx)
+    return map
+
+@app.get('/meander_migration/params/get_point_values/')
+def get_raw_point_vals():
+    query = request.args.to_dict()
+    y = int(query['year'])
+    q = int(query['quart'])
+    raw_df=get_raw_predictions(y,q)
+    try:
+        return jsonify(raw_df.to_dict(orient="records"))
+    except:
+        return jsonify(raw_df)
 
 # New route for riverbank erosion prediction
 @app.route('/predict_erosion', methods=['POST'])

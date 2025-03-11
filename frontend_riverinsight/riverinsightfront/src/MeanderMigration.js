@@ -22,14 +22,14 @@ const overlayBounds = {
 
 // Define overlay points with approximate lat/lng values and dummy data
 const overlayPoints = [
-  { lat: 7.6105, lng: 79.8055, data: "Dummy data 1" },
-  { lat: 7.6100, lng: 79.8050, data: "Dummy data 2" },
-  { lat: 7.6115, lng: 79.8065, data: "Dummy data 3" },
-  { lat: 7.6120, lng: 79.8070, data: "Dummy data 4" },
-  { lat: 7.6130, lng: 79.8080, data: "Dummy data 5" },
-  { lat: 7.6135, lng: 79.8085, data: "Dummy data 6" },
-  { lat: 7.6110, lng: 79.8060, data: "Dummy data 7" },
-  { lat: 7.6112, lng: 79.8062, data: "Dummy data 8" },
+  { lat: 7.6053056294716415, lng: 79.80250077227974, data: "Dummy data 1" },
+  { lat: 7.6053056294716415, lng: 79.80169228852404, data: "Dummy data 2" },
+  { lat: 7.603890782899153, lng: 79.81334792933548, data: "Dummy data 3" },
+  { lat: 7.602947551850828, lng: 79.81334792933548, data: "Dummy data 4" },
+  { lat: 7.600926342461559, lng: 79.8217022614778, data: "Dummy data 5" },
+  { lat: 7.6003199796447785, lng: 79.82271286617242, data: "Dummy data 6" },
+  { lat: 7.605575124056878, lng: 79.81927681021067, data: "Dummy data 7" },
+  { lat: 7.60604673958104, lng: 79.82035478855161, data: "Dummy data 8" },
 ];
 
 const MapWithOverlay = () => {
