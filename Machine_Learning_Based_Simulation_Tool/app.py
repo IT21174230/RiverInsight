@@ -8,6 +8,8 @@ from utils.meander_migration_xai import clear_images, send_map_to_api
 from utils.com_cache import m_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
+import pandas as pd
+import numpy as np
 
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
@@ -77,7 +79,7 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# route for generating heatmap
+# Route for generating heatmap
 @app.route('/predict_erosion/heatmap', methods=['POST'])
 def predict_heatmap():
     try:
@@ -104,6 +106,45 @@ def predict_heatmap():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# New route for fetching historical erosion data
+@app.route('/predict_erosion/history', methods=['POST'])
+def get_erosion_history():
+    try:
+        # Parse input JSON
+        data = request.get_json()
+        start_year = data.get('startYear', 2025)  # Default to 2025 if not provided
+        start_quarter = data.get('startQuarter', 1)  # Default to Q1 if not provided
+        end_year = data.get('endYear')
+        end_quarter = data.get('endQuarter')
+
+        if end_year is None or end_quarter is None:
+            return jsonify({'error': 'Missing endYear or endQuarter in the request.'}), 400
+
+        # Generate historical data for all points from startYear Q1 to endYear Q4
+        history_data = []
+        for year in range(start_year, end_year + 1):
+            for quarter in range(1, 5):  # Quarters 1 to 4
+                if year == end_year and quarter > end_quarter:
+                    break  # Stop if we've reached the end quarter
+
+                # Prepare input features and make predictions
+                future_X = prepare_future_input(year, quarter, scaler_year)
+                predictions = make_predictions(model, scaler_ts, future_X)
+
+                # Add predictions to history data
+                for point, value in predictions[0].items():
+                    history_data.append({
+                        'point': point,
+                        'year': year,
+                        'quarter': quarter,
+                        'value': value * 0.625  # Scale the value by 0.625
+                    })
+
+        # Prepare response
+        return jsonify({'history': history_data}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

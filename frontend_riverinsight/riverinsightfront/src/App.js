@@ -86,11 +86,7 @@ const App = () => {
             element={
               <main className="erosion-prediction-page">
                 <RiverbankErosion />
-                {/* Add HeatmapViewer below the map */}
-                <div className="heatmap-section">
-                  <h2>Erosion Predictions Heatmap</h2>
-                  <HeatmapViewer />
-                </div>
+               
               </main>
             }
           />

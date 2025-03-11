@@ -1,44 +1,60 @@
+import {
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from "@mui/material";
 import axios from "axios";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css"; // Import Leaflet CSS
+import "leaflet/dist/leaflet.css";
 import React, { useEffect, useState } from "react";
-import "./RiverbankErosion.css"; // Add CSS for styling
+import "./RiverbankErosion.css";
 
 // Fix for default marker icons not showing in Leaflet
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png"; // For high-resolution displays
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIconShadow from "leaflet/dist/images/marker-shadow.png";
 
 const RiverbankErosion = () => {
-  const [year, setYear] = useState(2025); // Default year set to 2025
-  const [quarter, setQuarter] = useState(1); // Default quarter set to 1
-  const [baselinePredictions, setBaselinePredictions] = useState(null); // Baseline predictions for 2025 Q1
-  const [userPredictions, setUserPredictions] = useState(null); // Predictions for user input
-  const [erosionValues, setErosionValues] = useState(null); // Erosion values (differences)
+  const [year, setYear] = useState(2025);
+  const [quarter, setQuarter] = useState(1);
+  const [baselinePredictions, setBaselinePredictions] = useState(null);
+  const [userPredictions, setUserPredictions] = useState(null);
+  const [erosionValues, setErosionValues] = useState(null);
   const [error, setError] = useState("");
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
-  const [clickedCoordinates, setClickedCoordinates] = useState(null); // State to store clicked coordinates
+  const [clickedCoordinates, setClickedCoordinates] = useState(null);
+  const [heatmap, setHeatmap] = useState(null);
+  const [showHeatmapInputs, setShowHeatmapInputs] = useState(false);
+  const [points, setPoints] = useState("1,2,3,4,5");
+  const [timesteps, setTimesteps] = useState(5);
+  const [showTable, setShowTable] = useState(false);
+  const [tableData, setTableData] = useState([]);
 
   // Coordinates for each point (latitude, longitude)
   const pointCoordinates = [
-    { id: "Point_1", lat: 7.60620, lng: 79.80165 },
+    { id: "Point_1", lat: 7.6062, lng: 79.80165 },
     { id: "Point_2", lat: 7.60504, lng: 79.80187 },
     { id: "Point_3", lat: 7.60401, lng: 79.80248 },
-    { id: "Point_4", lat: 7.60320, lng: 79.80329 },
+    { id: "Point_4", lat: 7.6032, lng: 79.80329 },
     { id: "Point_5", lat: 7.60273, lng: 79.80431 },
     { id: "Point_6", lat: 7.60223, lng: 79.80548 },
-    { id: "Point_7", lat: 7.60194, lng: 79.80680 },
-    { id: "Point_8", lat: 7.60195, lng: 79.80820 },
+    { id: "Point_7", lat: 7.60194, lng: 79.8068 },
+    { id: "Point_8", lat: 7.60195, lng: 79.8082 },
     { id: "Point_9", lat: 7.60253, lng: 79.80936 },
-    { id: "Point_10", lat: 7.60308, lng: 79.81046 },//marked
-    { id: "Point_11", lat: 7.60350, lng: 79.81160 },
-    { id: "Point_12", lat: 7.60350, lng:  79.81324 },
+    { id: "Point_10", lat: 7.60308, lng: 79.81046 },
+    { id: "Point_11", lat: 7.6035, lng: 79.8116 },
+    { id: "Point_12", lat: 7.6035, lng: 79.81324 },
     { id: "Point_13", lat: 7.60299, lng: 79.81464 },
-    { id: "Point_14", lat: 7.60215, lng:  79.81584 },
+    { id: "Point_14", lat: 7.60215, lng: 79.81584 },
     { id: "Point_15", lat: 7.60098, lng: 79.81692 },
-    { id: "Point_16", lat: 7.59991, lng: 79.81820  },
-    { id: "Point_17", lat: 7.59964, lng: 79.82000 },
+    { id: "Point_16", lat: 7.59991, lng: 79.8182 },
+    { id: "Point_17", lat: 7.59964, lng: 79.82 },
     { id: "Point_18", lat: 7.60004, lng: 79.82129 },
     { id: "Point_19", lat: 7.60091, lng: 79.82241 },
     { id: "Point_20", lat: 7.60241, lng: 79.82277 },
@@ -46,8 +62,9 @@ const RiverbankErosion = () => {
     { id: "Point_22", lat: 7.60495, lng: 79.82064 },
     { id: "Point_23", lat: 7.60628, lng: 79.81995 },
     { id: "Point_24", lat: 7.60786, lng: 79.81949 },
-    { id: "Point_25", lat: 7.60933, lng: 79.81968    }
+    { id: "Point_25", lat: 7.60933, lng: 79.81968 },
   ];
+
 
   // Define custom icons
   const defaultIcon = L.icon({
@@ -187,11 +204,7 @@ const RiverbankErosion = () => {
       if (erosionValue && userPrediction) {
         const popupContent = `
           <div class="popup-container">
-            <h3>${point.id}</h3>
-            <div class="popup-row">
-              <span class="popup-label">Width:</span>
-              <span class="popup-value">${userPrediction.value.toFixed(2)}</span>
-            </div>
+            <h3>${point.id.replace(/_/g, " ")}</h3>
             <div class="popup-row">
               <span class="popup-label">Erosion:</span>
               <span class="popup-value">${erosionValue.value.toFixed(2)}</span>
@@ -204,7 +217,7 @@ const RiverbankErosion = () => {
         `;
         marker.bindPopup(popupContent);
       } else {
-        marker.bindPopup(`<b>${point.id}</b><br>No data`);
+        marker.bindPopup(`<b>${point.id.replace(/_/g, " ")}</b><br>No data`);
       }
       newMarkers.push(marker);
     });
@@ -212,11 +225,14 @@ const RiverbankErosion = () => {
     setMarkers(newMarkers);
   }, [erosionValues, userPredictions, map, year]);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setUserPredictions(null);
     setErosionValues(null);
+    setHeatmap(null); // Reset heatmap on new submission
+    setShowTable(false); // Hide table on new submission
 
     try {
       // Send POST request to the backend for user input
@@ -246,6 +262,18 @@ const RiverbankErosion = () => {
           });
           setErosionValues(erosionArray);
         }
+
+        // Generate heatmap for default points (1,2,3,4,5) and timesteps (5)
+        const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
+          year: parseInt(year),
+          quarter: parseInt(quarter),
+          points: [1, 2, 3, 4, 5],
+          timesteps: 5,
+        });
+
+        if (heatmapResponse.data && heatmapResponse.data.heatmap) {
+          setHeatmap(heatmapResponse.data.heatmap);
+        }
       }
     } catch (err) {
       setError(
@@ -253,6 +281,39 @@ const RiverbankErosion = () => {
       );
     }
   };
+
+  // Fetch tabular data for all points from 2025 Q1 to the selected year and quarter
+  const fetchTableData = async () => {
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
+        startYear: 2025,
+        startQuarter: 1,
+        endYear: parseInt(year),
+        endQuarter: parseInt(quarter),
+      });
+
+      if (response.status === 200) {
+        setTableData(response.data.history);
+        setShowTable(true); // Show the table
+      }
+    } catch (err) {
+      setError("Failed to fetch tabular data.");
+    }
+  };
+// Transform table data for display
+const transformTableData = (data) => {
+  const transformedData = {};
+  data.forEach((item) => {
+    if (!transformedData[item.year]) {
+      transformedData[item.year] = {};
+    }
+    transformedData[item.year][item.point] = item.value.toFixed(2);
+  });
+  return transformedData;
+};
+
+const tableRows = transformTableData(tableData);
+
 
   return (
     <div className="riverbank-erosion">
@@ -293,15 +354,97 @@ const RiverbankErosion = () => {
 
       {error && <p className="error-message">{error}</p>}
 
-      <div id="map" className="map-container"></div>
+      <div className="split-screen-container">
+        <div id="map" className="map-container"></div>
+        {heatmap && (
+          <div className="heatmap-container">
+            <h3>Heatmap</h3>
+            <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
+          </div>
+        )}
+      </div>
 
-      {clickedCoordinates && (
-        <div className="coordinates-display">
-          <h3>Clicked Coordinates</h3>
-          <p>Latitude: {clickedCoordinates.lat.toFixed(5)}</p>
-          <p>Longitude: {clickedCoordinates.lng.toFixed(5)}</p>
+      {/* Button to show tabular data */}
+      <Button variant="contained" color="secondary" onClick={fetchTableData} style={{ marginTop: 20 }}>
+        Show Tabular Data
+      </Button>
+
+      {/* Tabular data display */}
+      {showTable && (
+        <TableContainer component={Paper} style={{ marginTop: 20 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Year</TableCell>
+                {pointCoordinates.map((point) => (
+                  <TableCell key={point.id}>{point.id.replace(/_/g, " ")}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {Object.entries(tableRows).map(([year, points]) => (
+                <TableRow key={year}>
+                  <TableCell>{year}</TableCell>
+                  {pointCoordinates.map((point) => (
+                    <TableCell key={point.id}>{points[point.id] || "-"}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Optional heatmap inputs */}
+      {showHeatmapInputs && (
+        <div className="heatmap-inputs">
+          <label>
+            Points (comma-separated):
+            <input
+              type="text"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              placeholder="e.g., 1,2,3,4,5"
+            />
+          </label>
+          <label>
+            Timesteps:
+            <input
+              type="number"
+              value={timesteps}
+              onChange={(e) => setTimesteps(e.target.value)}
+              placeholder="Default: 5"
+            />
+          </label>
+          <button
+            onClick={async () => {
+              try {
+                const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
+                  year: parseInt(year),
+                  quarter: parseInt(quarter),
+                  points: points.split(",").map(Number),
+                  timesteps: parseInt(timesteps),
+                });
+
+                if (heatmapResponse.data && heatmapResponse.data.heatmap) {
+                  setHeatmap(heatmapResponse.data.heatmap);
+                }
+              } catch (err) {
+                setError("Failed to generate heatmap.");
+              }
+            }}
+          >
+            Update Heatmap
+          </button>
         </div>
       )}
+
+      <button
+        className="toggle-heatmap-inputs"
+        onClick={() => setShowHeatmapInputs(!showHeatmapInputs)}
+      >
+        {showHeatmapInputs ? "Hide Heatmap Inputs" : "Show Heatmap Inputs"}
+      </button>
     </div>
   );
 };
