@@ -1,5 +1,4 @@
 import {
-  Button,
   Paper,
   Table,
   TableBody,
@@ -8,6 +7,7 @@ import {
   TableHead,
   TableRow
 } from "@mui/material";
+import Typography from '@mui/material/Typography';
 import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -231,8 +231,8 @@ const RiverbankErosion = () => {
     setError("");
     setUserPredictions(null);
     setErosionValues(null);
-    setHeatmap(null); // Reset heatmap on new submission
-    setShowTable(false); // Hide table on new submission
+    setHeatmap(null);
+    setTableData([]); // Reset table data on new submission
 
     try {
       // Send POST request to the backend for user input
@@ -241,7 +241,6 @@ const RiverbankErosion = () => {
         quarter: parseInt(quarter),
       });
 
-      // Handle response
       if (response.status === 200) {
         const predictionData = response.data.predictions[0];
         const predictionsArray = Object.entries(predictionData).map(
@@ -257,7 +256,7 @@ const RiverbankErosion = () => {
             );
             return {
               point: userPred.point,
-              value: baselinePred ? userPred.value - baselinePred.value : 0, // Input Year Width - 2025 Width
+              value: baselinePred ? userPred.value - baselinePred.value : 0,
             };
           });
           setErosionValues(erosionArray);
@@ -274,11 +273,21 @@ const RiverbankErosion = () => {
         if (heatmapResponse.data && heatmapResponse.data.heatmap) {
           setHeatmap(heatmapResponse.data.heatmap);
         }
+
+        // Fetch historical data for the table
+        const historyResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
+          startYear: 2025,
+          startQuarter: 1,
+          endYear: parseInt(year),
+          endQuarter: parseInt(quarter),
+        });
+
+        if (historyResponse.status === 200) {
+          setTableData(historyResponse.data.history);
+        }
       }
     } catch (err) {
-      setError(
-        err.response?.data?.error || "An error occurred while fetching predictions."
-      );
+      setError(err.response?.data?.error || "An error occurred while fetching predictions.");
     }
   };
 
@@ -356,43 +365,37 @@ const tableRows = transformTableData(tableData);
 
       <div className="split-screen-container">
         <div id="map" className="map-container"></div>
-        {heatmap && (
-          <div className="heatmap-container">
-            <h3>Heatmap</h3>
-            <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
-          </div>
-        )}
-      </div>
-
-      {/* Button to show tabular data */}
-      <Button variant="contained" color="secondary" onClick={fetchTableData} style={{ marginTop: 20 }}>
-        Show Tabular Data
-      </Button>
-
-      {/* Tabular data display */}
-      {showTable && (
-        <TableContainer component={Paper} style={{ marginTop: 20 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Year</TableCell>
-                {pointCoordinates.map((point) => (
-                  <TableCell key={point.id}>{point.id.replace(/_/g, " ")}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {Object.entries(tableRows).map(([year, points]) => (
-                <TableRow key={year}>
-                  <TableCell>{year}</TableCell>
+        <div className="table-container">
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Year</TableCell>
                   {pointCoordinates.map((point) => (
-                    <TableCell key={point.id}>{points[point.id] || "-"}</TableCell>
+                    <TableCell key={point.id}>{point.id.replace(/_/g, " ")}</TableCell>
                   ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {Object.entries(tableRows).map(([year, points]) => (
+                  <TableRow key={year}>
+                    <TableCell>{year}</TableCell>
+                    {pointCoordinates.map((point) => (
+                      <TableCell key={point.id}>{points[point.id] || "-"}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </div>
+      </div>
+
+      {heatmap && (
+        <div className="heatmap-container">
+          <Typography variant="h6">Heatmap</Typography>
+          <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
+        </div>
       )}
 
       {/* Optional heatmap inputs */}
@@ -416,7 +419,7 @@ const tableRows = transformTableData(tableData);
               placeholder="Default: 5"
             />
           </label>
-          <button
+          <button className="submit-button-2"
             onClick={async () => {
               try {
                 const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
@@ -440,7 +443,7 @@ const tableRows = transformTableData(tableData);
       )}
 
       <button
-        className="toggle-heatmap-inputs"
+        className="submit-button-2"
         onClick={() => setShowHeatmapInputs(!showHeatmapInputs)}
       >
         {showHeatmapInputs ? "Hide Heatmap Inputs" : "Show Heatmap Inputs"}
