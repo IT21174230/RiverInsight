@@ -213,22 +213,6 @@ def get_raw_predictions(year, quarter):
 
     new_centerline_points={}
     centerline_coordinates=[]
-    
-    # for i, l in enumerate(latest_infer.values()):
-    #   if i==0:
-    #     ctrl_1_x= get_perpendicular_point(control_points_std[0][1], l)
-    #     new_centerline_points['i']=[ctrl_1_x, control_points_std[0][1]]
-    #   elif i==1:
-    #     ctrl_2_x=get_perpendicular_point(control_points_std[1][1], l)
-    #     new_centerline_points['i']=[ctrl_2_x, control_points_std[1][1]]
-    #   elif i==3:
-    #     ctrl_3_y=get_perpendicular_point(control_points_std[2][0], l)
-    #     new_centerline_points['i']=[control_points_std[2][0],ctrl_3_y]
-    #   elif i==4:
-    #     ctrl_4_y=get_perpendicular_point(control_points_std[3][0], l)
-    #     new_centerline_points['i']=[control_points_std[3][0],ctrl_4_y]
-    #   else:
-    #     pass
 
     index_mapping = {
     0: lambda l: [get_perpendicular_point(control_points_std[0][1], l), control_points_std[0][1]],

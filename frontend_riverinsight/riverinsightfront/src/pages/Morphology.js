@@ -13,6 +13,8 @@ function MorphologicalPredictions() {
   const [imageSrc, setImageSrc] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [showPastDataMessage, setShowPastDataMessage] = useState(false);
+  const [shiftedData, setShiftedData] = useState([]);
+  const [isShifted, setIsShifted] = useState(false);
 
   useEffect(() => {
     // Close context menu on clicking outside
@@ -20,6 +22,28 @@ function MorphologicalPredictions() {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (tableData.length > 1) {
+      const newData = tableData.map((row, index, array) => {
+        if (index === 0) return row;
+        const prevRow = array[index - 1];
+        return {
+          ...row,
+          c1_dist: Math.abs(row.c1_dist - prevRow.c1_dist).toFixed(4),
+          c2_dist: Math.abs(row.c2_dist - prevRow.c2_dist).toFixed(4),
+          bend_1: Math.abs(row.bend_1 - prevRow.bend_1).toFixed(4),
+          c3_dist: Math.abs(row.c3_dist - prevRow.c3_dist).toFixed(4),
+          c4_dist: Math.abs(row.c4_dist - prevRow.c4_dist).toFixed(4),
+          bend_2: Math.abs(row.bend_2 - prevRow.bend_2).toFixed(4),
+          c7_dist: Math.abs(row.c7_dist - prevRow.c7_dist).toFixed(4),
+          c8_dist: Math.abs(row.c8_dist - prevRow.c8_dist).toFixed(4),
+          bend_3: Math.abs(row.bend_3 - prevRow.bend_3).toFixed(4),
+        };
+      });
+      setShiftedData(newData);
+    }
+  }, [tableData]);
 
   const fetchTableData = async () => {
     try {
@@ -39,7 +63,7 @@ function MorphologicalPredictions() {
 
   const handleRightClick = (event, row, index) => {
     event.preventDefault();
-    setSelectedRow({ ...row, index }); // Store index for API call
+    setSelectedRow({ ...row, index });
     setContextMenu({
       x: event.pageX,
       y: event.pageY,
@@ -48,16 +72,13 @@ function MorphologicalPredictions() {
 
   const fetchInferenceImage = async () => {
     setContextMenu(null);
-
     if (year <= 2024) {
-      setShowPastDataMessage(true); // Show past data message
+      setShowPastDataMessage(true);
       setShowImageModal(false);
     } else {
       setShowPastDataMessage(false);
       if (!selectedRow) return;
-
       const imageUrl = `http://127.0.0.1:5000/meander_migration/params/explain_migration/?year=${year}&quart=${quarter}&idx=${selectedRow.index}`;
-      
       setImageSrc(imageUrl);
       setShowImageModal(true);
     }
@@ -92,16 +113,13 @@ function MorphologicalPredictions() {
           </select>
         </label>
       </div>
-
       <button onClick={fetchTableData} className="fetch-button">
         Show Tabular Data
       </button>
-
       <div className="content-wrapper">
         <div className="map-container">
-          <MapWithOverlay />
+          <MapWithOverlay year={year} quarter={quarter} />
         </div>
-
         {showTable && (
           <div className="table-container">
             <div className="table-wrapper">
@@ -118,11 +136,11 @@ function MorphologicalPredictions() {
                     <th>Bend 2 Deviation</th>
                     <th>Control Point 7</th>
                     <th>Control Point 8</th>
-                    <th>Bend 4 Deviation</th>
+                    <th>Bend 3 Deviation</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tableData.map((row, index) => (
+                  {(isShifted ? shiftedData : tableData).map((row, index) => (
                     <tr key={index} onContextMenu={(e) => handleRightClick(e, row, index)}>
                       <td>{row.year}</td>
                       <td>{row.quarter}</td>
@@ -140,15 +158,18 @@ function MorphologicalPredictions() {
                 </tbody>
               </table>
             </div>
+            <button onClick={() => setIsShifted(!isShifted)} className="fetch-button">
+              {isShifted ? "Show Total Shift" : "Show Shift by Year"}
+            </button>
             <div className="placeholder-text">
               <p>Please right-click on desired row to explain the inference</p>
               <p>A heatmap is given, visualizing the effects of previous four time steps on
                 the inference. The inferences are generated using a Temporal Convolutional Model (TCN)</p>
             </div>
           </div>
+          
         )}
       </div>
-
       {contextMenu && (
         <div
           className="context-menu"
