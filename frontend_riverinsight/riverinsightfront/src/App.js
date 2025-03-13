@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MorphologicalPredictions from "./pages/Morphology"; 
+import MorphologicalPredictions from "./Morphology";
+import RiverbankErosion from "./riverbankErosion";
 import Navigation from './Navigation';
 import './App.css';
 
 const App = () => {
+  const [selectedOption, setSelectedOption] = useState("");
+
   return (
     <Router>
       <div className="app">
@@ -22,11 +25,28 @@ const App = () => {
           </section>
 
           <Navigation />
-        </main>
 
-        <Routes>
-            <Route path="/morphological-predictions" element={<MorphologicalPredictions />} />
-        </Routes>
+          <div className="dropdown-container">
+            <label htmlFor="analysis-select">Select Analysis Type:</label>
+            <select
+              id="analysis-select"
+              value={selectedOption}
+              onChange={(e) => setSelectedOption(e.target.value)}
+              className="dropdown-select"
+            >
+              <option value="">-- Select an option --</option>
+              <option value="meander-migration">Meander Migration</option>
+              <option value="erosion">Erosion</option>
+              <option value="flooding">Flooding</option>
+            </select>
+          </div>
+
+          <div className="analysis-content expanded-width">
+            {selectedOption === "meander-migration" && <MorphologicalPredictions />}
+            {selectedOption === "erosion" && <RiverbankErosion />}
+            {selectedOption === "flooding" && <p>Flooding analysis is coming soon!</p>}
+          </div>
+        </main>
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
@@ -37,4 +57,3 @@ const App = () => {
 };
 
 export default App;
-
