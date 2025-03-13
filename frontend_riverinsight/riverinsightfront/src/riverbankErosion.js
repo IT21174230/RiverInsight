@@ -1,11 +1,16 @@
 import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
 } from "@mui/material";
 import Typography from '@mui/material/Typography';
 import axios from "axios";
@@ -33,8 +38,8 @@ const RiverbankErosion = () => {
   const [showHeatmapInputs, setShowHeatmapInputs] = useState(false);
   const [points, setPoints] = useState("1,2,3,4,5");
   const [timesteps, setTimesteps] = useState(5);
-  const [showTable, setShowTable] = useState(false);
   const [tableData, setTableData] = useState([]);
+  const [openTableModal, setOpenTableModal] = useState(false); // State to control table modal visibility
 
   // Coordinates for each point (latitude, longitude)
   const pointCoordinates = [
@@ -64,7 +69,6 @@ const RiverbankErosion = () => {
     { id: "Point_24", lat: 7.60786, lng: 79.81949 },
     { id: "Point_25", lat: 7.60933, lng: 79.81968 },
   ];
-
 
   // Define custom icons
   const defaultIcon = L.icon({
@@ -162,6 +166,42 @@ const RiverbankErosion = () => {
             ([point, value]) => ({ point, value: value * 0.625 }) // Scale width values
           );
           setBaselinePredictions(predictionsArray);
+
+          // Set user predictions to baseline predictions by default
+          setUserPredictions(predictionsArray);
+
+          // Calculate erosion values (Input Year Width - 2025 Width)
+          const erosionArray = predictionsArray.map((userPred) => {
+            return {
+              point: userPred.point,
+              value: userPred.value,
+            };
+          });
+          setErosionValues(erosionArray);
+
+          // Fetch heatmap for default points (1,2,3,4,5) and timesteps (5)
+          const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
+            year: 2025,
+            quarter: 1,
+            points: [1, 2, 3, 4, 5],
+            timesteps: 5,
+          });
+
+          if (heatmapResponse.data && heatmapResponse.data.heatmap) {
+            setHeatmap(heatmapResponse.data.heatmap);
+          }
+
+          // Fetch historical data for the table
+          const historyResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
+            startYear: 2025,
+            startQuarter: 1,
+            endYear: 2025,
+            endQuarter: 1,
+          });
+
+          if (historyResponse.status === 200) {
+            setTableData(historyResponse.data.history);
+          }
         }
       } catch (err) {
         setError("Failed to fetch baseline predictions.");
@@ -291,38 +331,19 @@ const RiverbankErosion = () => {
     }
   };
 
-  // Fetch tabular data for all points from 2025 Q1 to the selected year and quarter
-  const fetchTableData = async () => {
-    try {
-      const response = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
-        startYear: 2025,
-        startQuarter: 1,
-        endYear: parseInt(year),
-        endQuarter: parseInt(quarter),
-      });
-
-      if (response.status === 200) {
-        setTableData(response.data.history);
-        setShowTable(true); // Show the table
+  // Transform table data for display
+  const transformTableData = (data) => {
+    const transformedData = {};
+    data.forEach((item) => {
+      if (!transformedData[item.year]) {
+        transformedData[item.year] = {};
       }
-    } catch (err) {
-      setError("Failed to fetch tabular data.");
-    }
+      transformedData[item.year][item.point] = item.value.toFixed(2);
+    });
+    return transformedData;
   };
-// Transform table data for display
-const transformTableData = (data) => {
-  const transformedData = {};
-  data.forEach((item) => {
-    if (!transformedData[item.year]) {
-      transformedData[item.year] = {};
-    }
-    transformedData[item.year][item.point] = item.value.toFixed(2);
-  });
-  return transformedData;
-};
 
-const tableRows = transformTableData(tableData);
-
+  const tableRows = transformTableData(tableData);
 
   return (
     <div className="riverbank-erosion">
@@ -359,13 +380,47 @@ const tableRows = transformTableData(tableData);
         <button type="submit" className="submit-button">
           Predict
         </button>
+        {/* Show Tabular Data button below Predict button */}
+        <Button
+          variant="contained"
+          onClick={() => setOpenTableModal(true)}
+          sx={{
+            marginTop: "10px",
+            backgroundColor: "#1a6b4b",
+            color: "white",
+            "&:hover": {
+              backgroundColor: "#145a3d", // Darker shade for hover effect
+            },
+          }}
+        >
+        Show Tabular Data
+      </Button>
       </form>
 
       {error && <p className="error-message">{error}</p>}
 
+
+      {/* Split screen for map and heatmap */}
       <div className="split-screen-container">
         <div id="map" className="map-container"></div>
-        <div className="table-container">
+        {heatmap && (
+          <div className="heatmap-container">
+            <Typography variant="h6">Heatmap</Typography>
+            <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
+          </div>
+        )}
+      </div>
+
+    
+      {/* Table in a modal */}
+      <Dialog
+        open={openTableModal}
+        onClose={() => setOpenTableModal(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Tabular Data</DialogTitle>
+        <DialogContent>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -388,15 +443,13 @@ const tableRows = transformTableData(tableData);
               </TableBody>
             </Table>
           </TableContainer>
-        </div>
-      </div>
-
-      {heatmap && (
-        <div className="heatmap-container">
-          <Typography variant="h6">Heatmap</Typography>
-          <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
-        </div>
-      )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTableModal(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Optional heatmap inputs */}
       {showHeatmapInputs && (

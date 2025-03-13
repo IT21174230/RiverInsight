@@ -1,95 +1,58 @@
+/* Main container */
 .riverbank-erosion {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    text-align: center;
-  }
-  
-  .form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .form-row {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-  }
-  
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-  
-  .form-group input {
-    padding: 8px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    width: 200px;
-  }
-  
-  .submit-button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    background-color: #1a6b4b;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .submit-button:hover {
-    background-color: #014421;
-  }
-  
-  .error-message {
-    color: red;
-    margin-top: 10px;
-  }
-  
- /* Map container */
-.map-container {
-  flex: 1;
-  height: 300px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
 }
 
-
-  /* Popup styling */
-.popup-container {
-  font-family: Arial, sans-serif;
-  padding: 10px;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.popup-container h3 {
-  margin: 0 0 10px;
-  font-size: 16px;
-  color: #333;
-}
-
-.popup-row {
+/* Form styling */
+.form {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
-.popup-label {
-  font-weight: bold;
-  color: #555;
+.form-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
 }
 
-.popup-value {
-  color: #000;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.form-group input {
+  padding: 8px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 200px;
+}
+
+.submit-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-button:hover {
+  background-color: #014421;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
 }
 
 /* Split-screen layout */
@@ -100,31 +63,41 @@
   gap: 20px; /* Space between map and heatmap */
 }
 
-.heatmap-container {
-  height: 50%;
+/* Map container */
+.map-container {
+  flex: 1; /* 50% width */
+  height: 100%;
   border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Heatmap container */
+.heatmap-container {
+  flex: 1; /* 50% width */
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   padding: 10px;
   background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .heatmap-container img {
-  width: 50%;
-  height: 50%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-}
-
-.heatmap-inputs{
-  padding : 1px;
-  top: 5px;
 }
 
 /* Table container */
 .table-container {
-  flex: 1;
-  max-height: 300px;
-  overflow-y: auto;
+  width: 100%;
+  margin-top: 20px;
   border: 1px solid #ccc;
   border-radius: 8px;
+  overflow-x: auto;
 }
 
 /* Table header styling */
@@ -142,6 +115,7 @@
   background-color: #014421; /* Darker shade on hover, matching the button hover */
 }
 
+/* Smaller button styling */
 .submit-button-2 {
   padding: 5px 10px 5px 5px; /* Top, Right, Bottom, Left padding */
   font-size: 0.875rem; /* Smaller font size */

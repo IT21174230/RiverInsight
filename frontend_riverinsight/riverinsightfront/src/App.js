@@ -2,7 +2,6 @@ import React from 'react';
 import { FaCloudRain, FaCompass, FaMountain, FaWater } from 'react-icons/fa';
 import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
-import HeatmapViewer from './HeatmapViewer'; // Import the HeatmapViewer component
 import RiverbankErosion from './riverbankErosion';
 
 const App = () => {
@@ -87,16 +86,6 @@ const App = () => {
               <main className="erosion-prediction-page">
                 <RiverbankErosion />
                
-              </main>
-            }
-          />
-
-          {/* Heatmap Viewer Page */}
-          <Route
-            path="/heatmap-viewer"
-            element={
-              <main className="heatmap-viewer-page">
-                <HeatmapViewer />
               </main>
             }
           />
