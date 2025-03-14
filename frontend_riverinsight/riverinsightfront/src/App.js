@@ -50,16 +50,15 @@ const App = () => {
               <option value="flooding">Flooding</option>
             </select>
           </div>
-          </main>
+   
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
             {selectedOption === "flooding" && <p><FloodDashboard/></p>}
           </div>
  
-        
+        </main>
  
-
  
 
         <footer className="footer">
