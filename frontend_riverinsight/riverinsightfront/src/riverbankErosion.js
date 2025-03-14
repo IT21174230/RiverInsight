@@ -12,7 +12,6 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import Typography from '@mui/material/Typography';
 import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -347,14 +346,15 @@ const RiverbankErosion = () => {
 
   return (
     <div className="riverbank-erosion">
-      <h2>Riverbank Erosion Prediction</h2>
+      <h2 className="title">Riverbank Erosion Prediction</h2>
       <form onSubmit={handleSubmit} className="form">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="year">Year:</label>
+            <label htmlFor="year" className="input-label">Year:</label>
             <input
               type="number"
               id="year"
+              className="input-field"
               value={year}
               onChange={(e) => setYear(e.target.value)}
               min="2025"
@@ -364,10 +364,11 @@ const RiverbankErosion = () => {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="quarter">Quarter:</label>
+            <label htmlFor="quarter" className="input-label" >Quarter:</label>
             <input
               type="number"
               id="quarter"
+              className="input-field"
               value={quarter}
               onChange={(e) => setQuarter(e.target.value)}
               min="1"
@@ -382,16 +383,10 @@ const RiverbankErosion = () => {
         </button>
         {/* Show Tabular Data button below Predict button */}
         <Button
+          className="submit-button"
           variant="contained"
           onClick={() => setOpenTableModal(true)}
-          sx={{
-            marginTop: "10px",
-            backgroundColor: "#1a6b4b",
-            color: "white",
-            "&:hover": {
-              backgroundColor: "#145a3d", // Darker shade for hover effect
-            },
-          }}
+          
         >
         Show Tabular Data
       </Button>
@@ -405,7 +400,14 @@ const RiverbankErosion = () => {
         <div id="map" className="map-container"></div>
         {heatmap && (
           <div className="heatmap-container">
-            <Typography variant="h6">Heatmap</Typography>
+            <div style={{ marginBottom: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#2c3e50' }}>
+                XAI Insights
+              </h3>
+              <p style={{ fontSize: '14px', color: '#7f8c8d', margin: 0 }}>
+                Visualize feature contributions across timesteps. Adjust inputs to explore model behavior.
+              </p>
+            </div>
             <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
           </div>
         )}
