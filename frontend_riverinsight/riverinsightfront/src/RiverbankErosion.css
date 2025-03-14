@@ -6,6 +6,15 @@
   text-align: center;
 }
 
+.title {
+  color: #1a6b4b;
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* Form styling */
 .form {
   display: flex;
@@ -36,18 +45,42 @@
   width: 200px;
 }
 
+.input-label {
+  font-size: 16px;
+  color: #1a6b4b;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  margin-left: 8px;
+  padding: 8px 12px;
+  border: 2px solid #1a6b4b;
+  border-radius: 5px;
+  font-size: 16px;
+  color: #333;
+  background-color: white;
+  transition: 0.3s ease-in-out;
+}
+
 .submit-button {
-  padding: 10px 20px;
-  font-size: 1rem;
   background-color: #1a6b4b;
   color: white;
+  font-size: 16px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 10px;
 }
 
 .submit-button:hover {
-  background-color: #014421;
+  background-color: #145c3d;
+  transform: scale(1.05);
 }
 
 .error-message {
@@ -59,7 +92,7 @@
 .split-screen-container {
   display: flex;
   width: 100%;
-  height: 300px; /* Adjust height as needed */
+  height: 500px; /* Adjust height as needed */
   gap: 20px; /* Space between map and heatmap */
 }
 

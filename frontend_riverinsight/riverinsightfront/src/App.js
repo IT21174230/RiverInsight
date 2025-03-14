@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MorphologicalPredictions from "./Morphology";
-import RiverbankErosion from "./riverbankErosion";
-import Navigation from './Navigation';
+import { BrowserRouter as Router } from "react-router-dom";
 import './App.css';
+ 
 import FloodDashboard from "./pages/Floodui";
+ 
+import MorphologicalPredictions from "./Morphology";
+import Navigation from './Navigation';
+import RiverbankErosion from "./riverbankErosion";
+ 
 
 const App = () => {
   const [selectedOption, setSelectedOption] = useState("");
@@ -47,13 +50,16 @@ const App = () => {
               <option value="flooding">Flooding</option>
             </select>
           </div>
-
+          </main>
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
             {selectedOption === "flooding" && <p><FloodDashboard/></p>}
           </div>
-        </main>
+ 
+        
+ 
+
  
 
         <footer className="footer">
