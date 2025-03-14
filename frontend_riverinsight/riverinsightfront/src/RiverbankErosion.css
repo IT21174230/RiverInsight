@@ -1,0 +1,135 @@
+/* Main container */
+.riverbank-erosion {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+/* Form styling */
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.form-group input {
+  padding: 8px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 200px;
+}
+
+.submit-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-button:hover {
+  background-color: #014421;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
+/* Split-screen layout */
+.split-screen-container {
+  display: flex;
+  width: 100%;
+  height: 300px; /* Adjust height as needed */
+  gap: 20px; /* Space between map and heatmap */
+}
+
+/* Map container */
+.map-container {
+  flex: 1; /* 50% width */
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Heatmap container */
+.heatmap-container {
+  flex: 1; /* 50% width */
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.heatmap-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Table container */
+.table-container {
+  width: 100%;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+/* Table header styling */
+.table-container .MuiTableHead-root {
+  background-color: #1a6b4b; /* Same as the button background */
+}
+
+.table-container .MuiTableCell-head {
+  color: white; /* White text for contrast */
+  font-weight: bold; /* Bold text for emphasis */
+}
+
+/* Hover effect for table header */
+.table-container .MuiTableHead-root:hover {
+  background-color: #014421; /* Darker shade on hover, matching the button hover */
+}
+
+/* Smaller button styling */
+.submit-button-2 {
+  padding: 5px 10px 5px 5px; /* Top, Right, Bottom, Left padding */
+  font-size: 0.875rem; /* Smaller font size */
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  height: 30px; /* Fixed height for consistency */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submit-button-2:hover {
+  background-color: #014421;
+}
