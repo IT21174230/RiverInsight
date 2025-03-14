@@ -36,7 +36,7 @@ export default function FloodDashboard() {
 
   const fetchPrediction = (date) => {
     setLoading(true);
-    fetch(`http://localhost:8000/predict?date=${date}`)
+    fetch(`http://localhost:5000/predict?date=${date}`)
       .then((res) => res.json())
       .then((data) => {
         setDashboardData({
