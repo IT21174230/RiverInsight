@@ -51,7 +51,7 @@ const App = () => {
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
-            {selectedOption === "flooding" && <p>Flooding analysis is coming soon!</p>}
+            {selectedOption === "flooding" && <p><FloodDashboard/></p>}
           </div>
         </main>
  
