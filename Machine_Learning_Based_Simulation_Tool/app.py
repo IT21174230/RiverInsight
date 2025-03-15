@@ -6,6 +6,7 @@ from utils.meander_migration import return_to_hp, get_raw_predictions
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
+from utils.flood_backend import get_prediction
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from flask_cors import CORS
 
@@ -151,7 +152,22 @@ def get_erosion_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
- 
+
+@app.route('/predict_flood', methods=['POST'])
+def predict_flood():
+    try:
+        data = request.get_json()
+        date_str = data.get('date')
+        
+        if not date_str:
+            return jsonify({'error': 'Date is required'}), 400
+
+        prediction = get_prediction(date_str)
+        return jsonify(prediction), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # Start the Flask app (unchanged)
 if __name__ == '__main__':
