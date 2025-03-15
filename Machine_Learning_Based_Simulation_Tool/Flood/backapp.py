@@ -1,25 +1,22 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import pickle
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from prophet import Prophet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from itertools import product
 from sklearn.model_selection import TimeSeriesSplit
-import uvicorn
+from prophet import Prophet
 
-app = FastAPI()
-
-# Enable CORS for your React front end
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # adjust if needed
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = Flask(__name__)
+CORS(app, resources={
+    r"/*": {
+        "origins": "http://localhost:3000",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 MODEL_FILE = "prophet_model.pkl"
 TRAIN_FILE = "prophet_train.csv"
@@ -266,147 +263,144 @@ model_info = load_and_train_model()
 prophet_model = model_info["model"]
 prophet_train = model_info["prophet_train"]
 
-@app.get("/predict")
-async def get_prediction(date: str = Query(..., description="Forecast end date (YYYY-MM-DD)")):
+@app.route('/predict', methods=['GET'])
+def get_prediction():
     try:
+        date = request.args.get('date')
+        if not date:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        
         user_input_date = pd.to_datetime(date)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-    
-    last_date = prophet_train["ds"].max()
-    if user_input_date <= last_date:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Input date must be after the last training date: {last_date.date()}"
-        )
-    
-    forecast_days = (user_input_date - last_date).days
-    future = prophet_model.make_future_dataframe(periods=forecast_days, freq="D")
-    # Compute date-based features for future dates
-    future["month"] = future["ds"].dt.month
-    future["day_of_year"] = future["ds"].dt.dayofyear
-    future["month_sin"] = np.sin(2 * np.pi * future["month"] / 12)
-    future["month_cos"] = np.cos(2 * np.pi * future["month"] / 12)
-    future["day_sin"] = np.sin(2 * np.pi * future["day_of_year"] / 365)
-    future["day_cos"] = np.cos(2 * np.pi * future["day_of_year"] / 365)
+        last_date = prophet_train["ds"].max()
+        
+        if user_input_date <= last_date:
+            return jsonify({
+                "error": f"Input date must be after the last training date: {last_date.date()}"
+            }), 400
+        
+        forecast_days = (user_input_date - last_date).days
+        future = prophet_model.make_future_dataframe(periods=forecast_days, freq="D")
 
-    # Simulate future regressor values using monthly averages (including wind speed features)
-    regressors_to_simulate = [
-        "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity",
-        "Max_Temperature", "Average_Wind_Speed", "Max_Wind_Speed"
-    ]
-    for reg in regressors_to_simulate:
-        if reg in prophet_train.columns:
-            monthly_avg = prophet_train.groupby(prophet_train["ds"].dt.month)[reg].mean().to_dict()
-            future[reg] = future["ds"].dt.month.map(monthly_avg)
-    
-    # For lag and rolling features, use the last observed value
-    last_value = prophet_train["y"].iloc[-1]
-    for reg in ["lag1", "lag3", "lag7", "lag14"]:
-        future[reg] = last_value
-    for col in ["rolling_avg_7", "rolling_median_7", "rolling_std_7", "expanding_mean",
-                "cumulative_rainfall", "rainfall_ndwi_interaction", "extreme_rainfall",
-                "monthly_mean", "monthly_max"]:
-        if col in prophet_train.columns:
-            future[col] = prophet_train[col].iloc[-1]
+        # Compute date-based features for future dates
+        future["month"] = future["ds"].dt.month
+        future["day_of_year"] = future["ds"].dt.dayofyear
+        future["month_sin"] = np.sin(2 * np.pi * future["month"] / 12)
+        future["month_cos"] = np.cos(2 * np.pi * future["month"] / 12)
+        future["day_sin"] = np.sin(2 * np.pi * future["day_of_year"] / 365)
+        future["day_cos"] = np.cos(2 * np.pi * future["day_of_year"] / 365)
 
-    future_forecast = prophet_model.predict(future)
-    forecast_for_date = future_forecast[future_forecast["ds"] == user_input_date]
-    if forecast_for_date.empty:
-        raise HTTPException(status_code=404, detail="No forecast available for the specified date.")
-    row = forecast_for_date.iloc[0]
-    water_area = row["yhat"]
+        # Simulate future regressor values
+        regressors_to_simulate = [
+            "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity",
+            "Max_Temperature", "Average_Wind_Speed", "Max_Wind_Speed"
+        ]
+        for reg in regressors_to_simulate:
+            if reg in prophet_train.columns:
+                monthly_avg = prophet_train.groupby(prophet_train["ds"].dt.month)[reg].mean().to_dict()
+                future[reg] = future["ds"].dt.month.map(monthly_avg)
+        
+        # Use last observed values for lag features
+        last_value = prophet_train["y"].iloc[-1]
+        for reg in ["lag1", "lag3", "lag7", "lag14"]:
+            future[reg] = last_value
+        
+        for col in ["rolling_avg_7", "rolling_median_7", "rolling_std_7", "expanding_mean",
+                    "cumulative_rainfall", "rainfall_ndwi_interaction", "extreme_rainfall",
+                    "monthly_mean", "monthly_max"]:
+            if col in prophet_train.columns:
+                future[col] = prophet_train[col].iloc[-1]
 
-    # Define risk thresholds
-    if water_area < 7.5:
-        risk_level = "Low Risk"
-        alerts = ["No flood warning", "Continue normal activities"]
-    elif water_area < 9.0:
-        risk_level = "Moderate Risk"
-        alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
-    else:
-        risk_level = "High Risk"
-        alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
+        future_forecast = prophet_model.predict(future)
+        forecast_for_date = future_forecast[future_forecast["ds"] == user_input_date]
+        
+        if forecast_for_date.empty:
+            return jsonify({"error": "No forecast available for the specified date."}), 404
+        
+        row = forecast_for_date.iloc[0]
+        water_area = row["yhat"]
 
-    # Predict additional parameters using separate models
-    if temperature_model is not None:
-        temp_forecast = temperature_model.predict(pd.DataFrame({"ds": [user_input_date]}))
-        predicted_temperature = float(round(temp_forecast.iloc[0]["yhat"], 2))
-    else:
+        # Risk thresholds and alerts logic
+        if water_area < 7.5:
+            risk_level = "Low Risk"
+            alerts = ["No flood warning", "Continue normal activities"]
+        elif water_area < 9.0:
+            risk_level = "Moderate Risk"
+            alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
+        else:
+            risk_level = "High Risk"
+            alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
+
+        # Additional parameter predictions
         predicted_temperature = None
-
-    if humidity_model is not None:
-        hum_forecast = humidity_model.predict(pd.DataFrame({"ds": [user_input_date]}))
-        predicted_humidity = float(round(hum_forecast.iloc[0]["yhat"], 2))
-    else:
         predicted_humidity = None
-
-    if rainfall_model is not None:
-        rain_forecast = rainfall_model.predict(pd.DataFrame({"ds": [user_input_date]}))
-        predicted_rainfall = float(round(rain_forecast.iloc[0]["yhat"], 2))
-    else:
         predicted_rainfall = None
-
-    # Simulate predicted wind speed using monthly averages if available
-    if "Average_Wind_Speed" in prophet_train.columns:
-        monthly_avg_wind = prophet_train.groupby(prophet_train["ds"].dt.month)["Average_Wind_Speed"].mean().to_dict()
-        predicted_wind_speed = float(round(monthly_avg_wind.get(user_input_date.month, 0), 2))
-    else:
         predicted_wind_speed = None
 
-    # Prepare chart data (from the beginning of the current year to forecast date)
-    year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
-    chart_df = future_forecast[(future_forecast["ds"] >= year_start) & (future_forecast["ds"] <= user_input_date)].copy()
-    chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
-    chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
+        if temperature_model is not None:
+            temp_forecast = temperature_model.predict(pd.DataFrame({"ds": [user_input_date]}))
+            predicted_temperature = float(round(temp_forecast.iloc[0]["yhat"], 2))
 
-    # Define explainable factor and flood effects (dummy values)
-    explainable_factor = {
-        "explanation": "The flood risk is primarily driven by rising water levels and heavy rainfall patterns."
-    }
-    flood_effect = {
-        "land_cover_effect": "Significant impact on vegetation and soil erosion.",
-        "land_usage_effect": "Urban and agricultural areas may face disruption.",
-        "effect_explanation": "Flooding can result in long-term changes in land cover and economic losses."
-    }
+        if humidity_model is not None:
+            hum_forecast = humidity_model.predict(pd.DataFrame({"ds": [user_input_date]}))
+            predicted_humidity = float(round(hum_forecast.iloc[0]["yhat"], 2))
 
-    # Print evaluation metrics on each GET request
-    print("GET /predict request for date:", user_input_date.date())
-    print("Training Evaluation Metrics:")
-    print(f"MAE: {evaluation_metrics.get('mae_train', None):.2f}, RMSE: {evaluation_metrics.get('rmse_train', None):.2f}, R²: {evaluation_metrics.get('r2_train', None):.2f}")
-    print("Test Evaluation Metrics:")
-    print(f"MAE: {evaluation_metrics.get('mae_test', None):.2f}, RMSE: {evaluation_metrics.get('rmse_test', None):.2f}, R²: {evaluation_metrics.get('r2_test', None):.2f}")
+        if rainfall_model is not None:
+            rain_forecast = rainfall_model.predict(pd.DataFrame({"ds": [user_input_date]}))
+            predicted_rainfall = float(round(rain_forecast.iloc[0]["yhat"], 2))
 
-    result = {
-        "date": str(user_input_date.date()),
-        "predicted_water_area_km2": float(round(water_area, 2)),
-        "flood_warning": risk_level,
-        "risk_level": risk_level,
-        "alerts": alerts,
-        "predicted_temperature": predicted_temperature,
-        "predicted_humidity": predicted_humidity,
-        "predicted_rainfall": predicted_rainfall,
-        "predicted_wind_speed": predicted_wind_speed,
-        "current_water_area_km2": float(round(water_area, 2)),
-        "rainfall_mm": predicted_rainfall if predicted_rainfall is not None else 0,
-        "prediction_interval": {
-            "lower": float(round(row["yhat_lower"], 2)),
-            "upper": float(round(row["yhat_upper"], 2))
-        },
-        "regressor_values": {
-            reg: float(round(future[reg].iloc[-1], 2))
-            for reg in [
-                "Average_Temperature", "Rainfall", "Average_Humidity",
-                "Max_Humidity", "Max_Temperature", "Average_Wind_Speed", "Max_Wind_Speed"
-            ]
-            if reg in future.columns
-        },
-        "chart_data": chart_data,
-        "evaluation_metrics": evaluation_metrics,
-        "explainable_factor": explainable_factor,
-        "flood_effect": flood_effect
-    }
-    return result
+        if "Average_Wind_Speed" in prophet_train.columns:
+            monthly_avg_wind = prophet_train.groupby(prophet_train["ds"].dt.month)["Average_Wind_Speed"].mean().to_dict()
+            predicted_wind_speed = float(round(monthly_avg_wind.get(user_input_date.month, 0), 2))
+
+        # Chart data preparation
+        year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
+        chart_df = future_forecast[
+            (future_forecast["ds"] >= year_start) & 
+            (future_forecast["ds"] <= user_input_date)
+        ].copy()
+        chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
+        chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
+
+        # Build response
+        result = {
+            "date": str(user_input_date.date()),
+            "predicted_water_area_km2": float(round(water_area, 2)),
+            "flood_warning": risk_level,
+            "risk_level": risk_level,
+            "alerts": alerts,
+            "predicted_temperature": predicted_temperature,
+            "predicted_humidity": predicted_humidity,
+            "predicted_rainfall": predicted_rainfall,
+            "predicted_wind_speed": predicted_wind_speed,
+            "current_water_area_km2": float(round(water_area, 2)),
+            "rainfall_mm": predicted_rainfall if predicted_rainfall is not None else 0,
+            "prediction_interval": {
+                "lower": float(round(row["yhat_lower"], 2)),
+                "upper": float(round(row["yhat_upper"], 2))
+            },
+            "chart_data": chart_data,
+            "evaluation_metrics": evaluation_metrics,
+            "explainable_factor": {
+                "explanation": "The flood risk is primarily driven by rising water levels and heavy rainfall patterns."
+            },
+            "flood_effect": {
+                "land_cover_effect": "Significant impact on vegetation and soil erosion.",
+                "land_usage_effect": "Urban and agricultural areas may face disruption.",
+                "effect_explanation": "Flooding can result in long-term changes in land cover and economic losses."
+            }
+        }
+
+        # Print evaluation metrics
+        print("GET /predict request for date:", user_input_date.date())
+        print("Training Evaluation Metrics:")
+        print(f"MAE: {evaluation_metrics.get('mae_train', None):.2f}, RMSE: {evaluation_metrics.get('rmse_train', None):.2f}, R²: {evaluation_metrics.get('r2_train', None):.2f}")
+        print("Test Evaluation Metrics:")
+        print(f"MAE: {evaluation_metrics.get('mae_test', None):.2f}, RMSE: {evaluation_metrics.get('rmse_test', None):.2f}, R²: {evaluation_metrics.get('r2_test', None):.2f}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=5000, debug=True)

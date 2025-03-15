@@ -1,0 +1,546 @@
+/* Namespace all classes with 'flood-' prefix to avoid conflicts */
+.flood-dashboard {
+  padding: 1.5rem;
+  background-color: #f3f4f6;
+  min-height: 100vh;
+}
+
+.flood-container {
+  max-width: 72rem;
+  margin: 0 auto;
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.flood-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+/* Date control section */
+.date-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.date-control input {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.date-control button {
+  padding: 0.5rem 1rem;
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+/* Info grid section */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.date-box {
+  background-color: #1a6b4b;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Add the rest of your existing CSS styles but prefix them with 'flood-' where appropriate */
+.flood-dashboard-container{
+    display: block;
+}
+
+.flood-dashboard {
+  min-height: 100vh;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  background-color: #f3f4f6;
+}
+
+.flood-dashboard-card {
+  width: 100%;
+  max-width: 72rem;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  background-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.flood-dashboard-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.flood-date-picker {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.flood-date-picker input {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.flood-date-picker button {
+  padding: 0.5rem 1rem;
+  background-color: #1a6b4b;
+  color: white;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+}
+
+.flood-date-picker button:hover {
+  background-color: #155d40;
+}
+
+.flood-info-cards {
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.flood-date-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background-color: #1a6b4b;
+  color: white;
+}
+
+.flood-prediction-info {
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  background-color: #f9fafb;
+}
+
+.flood-prediction-value {
+  color: #9ca3af;
+}
+
+.flood-warning-text {
+  color: #ef4444;
+}
+
+.flood-main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding-top: 2.5rem;
+}
+
+/* Chart styles */
+.flood-chart-card {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.flood-chart-container {
+  height: 325px;
+  padding-right: 1.5rem;
+}
+
+/* Icons */
+.flood-icon-small {
+  width: 1rem;
+  height: 1rem;
+}
+
+.flood-icon-risk {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.flood-icon-fact {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.flood-icon-success { color: #22c55e; }
+.flood-icon-warning { color: #f97316; }
+.flood-icon-danger { color: #ef4444; }
+.flood-icon-default { color: #6b7280; }
+.flood-icon-temp { color: #eab308; }
+.flood-icon-water { color: #1a6b4b; }
+.flood-icon-rain { color: #6b7280; }
+.flood-icon-humidity { color: #22c55e; }
+
+/* Section title */
+.flood-section-title {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1a6b4b;
+}
+
+/* Cards */
+.flood-effects-card,
+.flood-risk-card,
+.flood-alerts-card,
+.flood-facts-card,
+.flood-explanation-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+/* Alerts */
+.flood-alerts-card {
+  background-color: #1a6b4b;
+  color: white;
+}
+
+.flood-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.flood-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  color: black;
+}
+
+/* Facts grid */
+.flood-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.flood-fact-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.flood-fact-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.flood-fact-value {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .flood-main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .flood-info-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .flood-facts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Add to your existing CSS file */
+
+.flood-dashboard-container {
+  min-height: 100vh;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  background-color: #f3f4f6;
+}
+
+/* New styles to match Tailwind classes */
+.flood-date-control {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.flood-info-summary {
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.flood-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding-top: 2.5rem;
+}
+
+.flood-content-left, .flood-content-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.flood-chart-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.flood-risk-alerts {
+  display: flex;
+  gap: 1rem;
+}
+
+.flood-alert-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #1a6b4b;
+}
+
+.flood-alert-text {
+  font-size: 0.875rem;
+}
+
+/* Make sure all colors use #1a6b4b instead of Tailwind's blue-600 */
+.flood-predict-button,
+.flood-date-display,
+.flood-alerts-box,
+.flood-section-title,
+.flood-risk-title {
+  background-color: #1a6b4b;
+  color: white;
+}
+
+/* Add any missing responsive styles */
+@media (max-width: 1024px) {
+  .flood-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .flood-info-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* New styles from the suggested code change */
+.flood-page {
+  min-height: 100vh;
+  padding: 1.5rem;
+  background-color: #f3f4f6;
+}
+
+.flood-container {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.flood-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* Date Control */
+.date-control {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.date-control input {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.date-control button {
+  padding: 0.5rem 1rem;
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+/* Summary Grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.summary-box {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-box.date {
+  background-color: #1a6b4b;
+  color: white;
+}
+
+/* Main Layout */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding-top: 2.5rem;
+}
+
+/* Chart Section */
+.chart-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.chart-wrapper {
+  height: 325px;
+}
+
+/* Risk and Alerts */
+.risk-alert-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.risk-section {
+  width: 8rem;
+  padding: 1rem;
+  text-align: center;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.alerts-section {
+  flex: 1;
+  padding: 1rem;
+  background: #1a6b4b;
+  color: white;
+  border-radius: 0.75rem;
+}
+
+.alert-item {
+  background: white;
+  color: black;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Facts Grid */
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.fact-item {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Icons */
+.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.icon-risk {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.success { color: #22c55e; }
+.warning { color: #f97316; }
+.danger { color: #ef4444; }
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-grid,
+  .facts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .risk-alert-row {
+    flex-direction: column;
+  }
+  
+  .risk-section {
+    width: 100%;
+  }
+}
