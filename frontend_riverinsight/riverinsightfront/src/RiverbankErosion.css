@@ -1,0 +1,168 @@
+/* Main container */
+.riverbank-erosion {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.title {
+  color: #1a6b4b;
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Form styling */
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.form-group input {
+  padding: 8px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 200px;
+}
+
+.input-label {
+  font-size: 16px;
+  color: #1a6b4b;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  margin-left: 8px;
+  padding: 8px 12px;
+  border: 2px solid #1a6b4b;
+  border-radius: 5px;
+  font-size: 16px;
+  color: #333;
+  background-color: white;
+  transition: 0.3s ease-in-out;
+}
+
+.submit-button {
+  background-color: #1a6b4b;
+  color: white;
+  font-size: 16px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+
+.submit-button:hover {
+  background-color: #145c3d;
+  transform: scale(1.05);
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
+/* Split-screen layout */
+.split-screen-container {
+  display: flex;
+  width: 100%;
+  height: 500px; /* Adjust height as needed */
+  gap: 20px; /* Space between map and heatmap */
+}
+
+/* Map container */
+.map-container {
+  flex: 1; /* 50% width */
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Heatmap container */
+.heatmap-container {
+  flex: 1; /* 50% width */
+  height: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.heatmap-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Table container */
+.table-container {
+  width: 100%;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+/* Table header styling */
+.table-container .MuiTableHead-root {
+  background-color: #1a6b4b; /* Same as the button background */
+}
+
+.table-container .MuiTableCell-head {
+  color: white; /* White text for contrast */
+  font-weight: bold; /* Bold text for emphasis */
+}
+
+/* Hover effect for table header */
+.table-container .MuiTableHead-root:hover {
+  background-color: #014421; /* Darker shade on hover, matching the button hover */
+}
+
+/* Smaller button styling */
+.submit-button-2 {
+  padding: 5px 10px 5px 5px; /* Top, Right, Bottom, Left padding */
+  font-size: 0.875rem; /* Smaller font size */
+  background-color: #1a6b4b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  height: 30px; /* Fixed height for consistency */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submit-button-2:hover {
+  background-color: #014421;
+}
