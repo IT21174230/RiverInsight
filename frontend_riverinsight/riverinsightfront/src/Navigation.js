@@ -1,14 +1,12 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { FaWater, FaCompass } from "react-icons/fa";
 
-function Navigation() {
-  const navigate = useNavigate(); 
+function Navigation({ onMorphologicalClick }) {
   return (
     <section className="nav-section">
       <h3>Explore Our Features</h3>
       <div className="nav-menu">
-        <div className="nav-item" onClick={() => navigate("/morphological-predictions")} style={{ cursor: "pointer" }}>
+        <div className="nav-item" onClick={onMorphologicalClick} style={{ cursor: "pointer" }}>
           <FaWater className="icon" />
           <h4>Morphological Predictions</h4>
           <p>A dashboard predicting meander migration, riverbank erosion, and flood probability.</p>

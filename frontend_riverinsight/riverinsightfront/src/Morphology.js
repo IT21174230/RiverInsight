@@ -118,7 +118,7 @@ function MorphologicalPredictions() {
       </button>
       <div className="content-wrapper">
         <div className="map-container">
-          <MapWithOverlay year={year} quarter={quarter} />
+          <MapWithOverlay latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null} />
         </div>
         {showTable && (
           <div className="table-container">
