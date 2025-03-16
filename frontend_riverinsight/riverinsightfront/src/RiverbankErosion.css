@@ -92,7 +92,7 @@
 .split-screen-container {
   display: flex;
   width: 100%;
-  height: 550px; 
+  height: 500px; /* Adjust height as needed */
   gap: 20px; /* Space between map and heatmap */
 }
 
@@ -110,7 +110,7 @@
   height: 100%;
   border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 20px;
+  padding: 10px;
   background-color: #f9f9f9;
   display: flex;
   flex-direction: column;
@@ -124,27 +124,40 @@
   object-fit: contain;
 }
 
-.heatmap-inputs input:focus {
-  outline: none;
-  border-color: #0078A8;
-  box-shadow: 0 0 0 2px rgba(0, 120, 168, 0.2);
+/* Table container */
+.table-container {
+  width: 100%;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow-x: auto;
 }
 
-.heatmap-inputs button:hover {
-  background-color: #005f8a;
+/* Table header styling */
+.table-container .MuiTableHead-root {
+  background-color: #1a6b4b; /* Same as the button background */
+}
+
+.table-container .MuiTableCell-head {
+  color: white; /* White text for contrast */
+  font-weight: bold; /* Bold text for emphasis */
+}
+
+/* Hover effect for table header */
+.table-container .MuiTableHead-root:hover {
+  background-color: #014421; /* Darker shade on hover, matching the button hover */
 }
 
 /* Smaller button styling */
 .submit-button-2 {
-  padding: 5px 5px 5px 5px; /* Top, Right, Bottom, Left padding */
-  margin-top: 15px;
-  font-size: 0.875rem; 
-  background-color: #1a6b4b !important;
-  color: white !important;
+  padding: 5px 10px 5px 5px; /* Top, Right, Bottom, Left padding */
+  font-size: 0.875rem; /* Smaller font size */
+  background-color: #1a6b4b;
+  color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  height: 30px; 
+  height: 30px; /* Fixed height for consistency */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -152,60 +165,4 @@
 
 .submit-button-2:hover {
   background-color: #014421;
-}
-
-.inputs-heatmap {
-  width: '100%';
-  padding: '8px';
-  border-radius: '4px';
-  border: '1px solid #ccc';
-  font-size: '14px';
-}
-
-/* Scrollable Dialog Content */
-.scrollable-dialog-content {
-  max-height: 30vh; 
-  overflow-y: auto; 
-  overflow-x: auto; 
-  padding: 16px; 
-}
-
-/* Table Header */
-.table-header {
-  background-color: rgba(26, 107, 75, 0.1); /* Light green with 10% opacity */
-  border-bottom: 2px solid #1a6b4b; /* Green border for separation */
-}
-
-/* Table Header Cells */
-.table-header-cell {
-  color: #1a6b4b; /* Green text color */
-  font-weight: 600;
-  font-size: 0.875rem;
-  min-width: 70px; /* Increased column width */
-}
-
-/* Year Column */
-.year-cell {
-  width: 120px; 
-}
-
-/* Table Body */
-.table-body-row:nth-of-type(odd) {
-  background-color: #f5f5f5; 
-}
-
-.table-body-row:hover {
-  background-color: #e0f2f1; 
-}
-
-.table-body-cell {
-  font-size: 0.875rem;
-  min-width: 60px; 
-}
-
-/* Dialog Title */
-.dialog-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1a6b4b; 
 }
