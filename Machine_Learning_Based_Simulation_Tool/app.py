@@ -2,12 +2,21 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp, get_raw_predictions
-from utils.meander_migration_xai import send_map_to_api
-from utils.com_cache import m_cache, data_cache, init_cache
+import json
+import base64
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from numpyencoder import NumpyEncoder
+from werkzeug.exceptions import HTTPException
+from utils.meander_migration import return_to_hp
+from utils.meander_migration_xai import clear_images, send_map_to_api
+from utils.com_cache import m_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
+from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
+from utils.simulation_tool_xai import *
 from flask_cors import CORS
+
 
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
@@ -17,6 +26,9 @@ init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
 model, scaler_ts, scaler_year = load_resources()
+
+#load model for simulation
+simulation_model, scaler_features, scaler_targets = load_resource_simulation()
 
 def clean_up():
     IMAGE_FOLDER = r'data_dir\meander_migration_sal_maps'
@@ -115,6 +127,55 @@ def predict_heatmap():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# New route for simulation tool prediction
+@app.route('/predict_simulation_tool', methods=['POST'])
+def predict():
+    try:
+        # Parse input data
+        input_data = request.get_json()
+        date = input_data.get('date')
+        rainfall = input_data.get('rainfall')
+        temp = input_data.get('temp')
+
+        print('date: ', date, 'rainfall: ', rainfall, 'temp: ', temp)
+
+        # Prepare input features
+        future_X = prepare_future_input_simulation(date, rainfall, temp)
+
+        simulation_tool_backend
+        # Make predictions
+        predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
+
+        # Calculate SHAP feature importance
+        feature_names = ['year', 'quarter', 'rainfall', 'temperature']
+        target_names = ['c1_dist','c2_dist','c3_dist','c4_dist','c5_dist','c6_dist','c7_dist','c8_dist'] 
+        feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
+
+        feature_importance_per_target = calculate_shap_feature_importance_per_target(
+            model=simulation_model,
+            data=future_X,
+            feature_names=feature_names,
+            target_names=target_names
+        )
+
+        # Prepare response
+        response = {
+            "predictions": predictions_df.to_dict(orient='records'),
+            "feature_importance": feature_importance,
+            "feature_importance_per_target": feature_importance_per_target
+
+        }
+        return jsonify(response), 200
+
+    except HTTPException:
+        return jsonify({"message": "Unsupported Media Type: Send request as encoded JSON"}), 415
+    except KeyError as e:
+        return jsonify({"message": f"{e} - Key not found in request body"}), 404
+    except ValueError as e:
+        return jsonify({"message": f"{e} - Request body input is invalid"}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500  
 
 # New route for fetching historical erosion data
 @app.route('/predict_erosion/history', methods=['POST'])
@@ -155,6 +216,7 @@ def get_erosion_history():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
