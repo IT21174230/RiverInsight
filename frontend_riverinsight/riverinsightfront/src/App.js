@@ -27,19 +27,19 @@ const App = () => {
           <Navigation />
 
           <div className="dropdown-container">
-            <label htmlFor="analysis-select">Select Analysis Type:</label>
-            <select
-              id="analysis-select"
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              className="dropdown-select"
-            >
-              <option value="">-- Select an option --</option>
-              <option value="meander-migration">Meander Migration</option>
-              <option value="erosion">Erosion</option>
-              <option value="flooding">Flooding</option>
-            </select>
-          </div>
+          <label htmlFor="analysis-select">Select Analysis Type:</label>
+          <select
+            id="analysis-select"
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+            className="dropdown-select"
+          >
+            <option value="">-- Select an option --</option>
+            <option value="meander-migration">Meander Migration</option>
+            <option value="erosion">Erosion</option>
+            <option value="flooding">Flooding</option>
+          </select>
+        </div>
           </main>
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
