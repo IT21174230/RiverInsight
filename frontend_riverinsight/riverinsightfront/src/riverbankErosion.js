@@ -4,13 +4,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
+  TableRow
 } from "@mui/material";
 import axios from "axios";
 import L from "leaflet";
@@ -150,54 +149,63 @@ const RiverbankErosion = () => {
     };
   }, []);
 
-  // Fetch baseline predictions (2025 Q1) on component mount
+  const getCurrentYearAndQuarter = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1; // Months are 0-indexed, so add 1
+    const quarter = Math.ceil(month / 3); // Calculate quarter (1-4)
+    return { year, quarter };
+  };
+
   useEffect(() => {
     const fetchBaselinePredictions = async () => {
       try {
+        // Get current year and quarter
+        const { year, quarter } = getCurrentYearAndQuarter();
+  
+        // Fetch baseline predictions for the current year and quarter
         const response = await axios.post("http://127.0.0.1:5000/predict_erosion", {
-          year: 2025,
-          quarter: 1,
+          year,
+          quarter,
         });
-
+  
         if (response.status === 200) {
           const predictionData = response.data.predictions[0];
           const predictionsArray = Object.entries(predictionData).map(
             ([point, value]) => ({ point, value: value * 0.625 }) // Scale width values
           );
           setBaselinePredictions(predictionsArray);
-
+  
           // Set user predictions to baseline predictions by default
           setUserPredictions(predictionsArray);
-
-          // Calculate erosion values (Input Year Width - 2025 Width)
-          const erosionArray = predictionsArray.map((userPred) => {
-            return {
-              point: userPred.point,
-              value: userPred.value,
-            };
-          });
+  
+          // Set erosion values to 0 for the baseline period (current year and quarter)
+          const erosionArray = predictionsArray.map((userPred) => ({
+            point: userPred.point,
+            value: 0, // Erosion is 0 for the baseline period
+          }));
           setErosionValues(erosionArray);
-
+  
           // Fetch heatmap for default points (1,2,3,4,5) and timesteps (5)
           const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
-            year: 2025,
-            quarter: 1,
+            year,
+            quarter,
             points: [1, 2, 3, 4, 5],
             timesteps: 5,
           });
-
+  
           if (heatmapResponse.data && heatmapResponse.data.heatmap) {
             setHeatmap(heatmapResponse.data.heatmap);
           }
-
+  
           // Fetch historical data for the table
           const historyResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
-            startYear: 2025,
-            startQuarter: 1,
-            endYear: 2025,
-            endQuarter: 1,
+            startYear: year,
+            startQuarter: quarter,
+            endYear: year,
+            endQuarter: quarter,
           });
-
+  
           if (historyResponse.status === 200) {
             setTableData(historyResponse.data.history);
           }
@@ -206,7 +214,7 @@ const RiverbankErosion = () => {
         setError("Failed to fetch baseline predictions.");
       }
     };
-
+  
     fetchBaselinePredictions();
   }, []);
 
@@ -224,8 +232,18 @@ const RiverbankErosion = () => {
 
       // Calculate erosion rate
       const yearsDifference = year - 2025; // Years from 2025 to user input year
-      const erosionRate = erosionValue ? (erosionValue.value / yearsDifference).toFixed(2) : 0;
+      let erosionRate;
 
+      if (yearsDifference === 0) {
+        // If the year is the same as the baseline (2025), set erosion rate to 0
+        erosionRate = 0;
+      } else if (erosionValue) {
+        // Calculate erosion rate if yearsDifference is greater than 0
+        erosionRate = (erosionValue.value / yearsDifference).toFixed(2);
+      } else {
+        // If erosionValue is not available, set erosion rate to 0
+        erosionRate = 0;
+      }
       // Assign icon based on erosion rate
       let icon;
       if (erosionRate <= 1) {
@@ -239,21 +257,23 @@ const RiverbankErosion = () => {
       // Use the custom icon for the marker
       const marker = L.marker([point.lat, point.lng], { icon }).addTo(map);
 
-      // Modern UI for popup
+      // UI for popup
       if (erosionValue && userPrediction) {
         const popupContent = `
-          <div class="popup-container">
-            <h3>${point.id.replace(/_/g, " ")}</h3>
-            <div class="popup-row">
-              <span class="popup-label">Erosion:</span>
-              <span class="popup-value">${erosionValue.value.toFixed(2)}</span>
-            </div>
-            <div class="popup-row">
-              <span class="popup-label">Erosion Rate:</span>
-              <span class="popup-value">${erosionRate} m/year</span>
-            </div>
+        <div class="popup-container">
+          <h3>${point.id.replace(/_/g, " ")}</h3>
+          <div class="popup-row">
+            <span class="popup-label">Erosion:</span>
+            <span class="popup-value">${erosionValue ? `${erosionValue.value.toFixed(2)} m` : "N/A"}</span>
           </div>
-        `;
+          <div class="popup-row">
+            <span class="popup-label">Erosion Rate:</span>
+            <span class="popup-value">
+              ${yearsDifference === 0 ? "N/A (Baseline Period)" : `${erosionRate} m/year`}
+            </span>
+          </div>
+        </div>
+      `;
         marker.bindPopup(popupContent);
       } else {
         marker.bindPopup(`<b>${point.id.replace(/_/g, " ")}</b><br>No data`);
@@ -272,27 +292,37 @@ const RiverbankErosion = () => {
     setErosionValues(null);
     setHeatmap(null);
     setTableData([]); // Reset table data on new submission
-
+  
     try {
+      // Get current year and quarter
+      const { year: currentYear, quarter: currentQuarter } = getCurrentYearAndQuarter();
+  
       // Send POST request to the backend for user input
       const response = await axios.post("http://127.0.0.1:5000/predict_erosion", {
         year: parseInt(year),
         quarter: parseInt(quarter),
       });
-
+  
       if (response.status === 200) {
         const predictionData = response.data.predictions[0];
         const predictionsArray = Object.entries(predictionData).map(
           ([point, value]) => ({ point, value: value * 0.625 }) // Scale width values
         );
         setUserPredictions(predictionsArray);
-
-        // Calculate erosion values (Input Year Width - 2025 Width)
+  
+        // Calculate erosion values (Input Year Width - Current Year Width)
         if (baselinePredictions) {
           const erosionArray = predictionsArray.map((userPred) => {
             const baselinePred = baselinePredictions.find(
               (basePred) => basePred.point === userPred.point
             );
+            // If the selected year and quarter are the current year and quarter, set erosion to 0
+            if (year === currentYear && quarter === currentQuarter) {
+              return {
+                point: userPred.point,
+                value: 0, // Erosion is 0 for the current period
+              };
+            }
             return {
               point: userPred.point,
               value: baselinePred ? userPred.value - baselinePred.value : 0,
@@ -300,7 +330,7 @@ const RiverbankErosion = () => {
           });
           setErosionValues(erosionArray);
         }
-
+  
         // Generate heatmap for default points (1,2,3,4,5) and timesteps (5)
         const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
           year: parseInt(year),
@@ -308,19 +338,19 @@ const RiverbankErosion = () => {
           points: [1, 2, 3, 4, 5],
           timesteps: 5,
         });
-
+  
         if (heatmapResponse.data && heatmapResponse.data.heatmap) {
           setHeatmap(heatmapResponse.data.heatmap);
         }
-
+  
         // Fetch historical data for the table
         const historyResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
-          startYear: 2025,
-          startQuarter: 1,
+          startYear: currentYear,
+          startQuarter: currentQuarter,
           endYear: parseInt(year),
           endQuarter: parseInt(quarter),
         });
-
+  
         if (historyResponse.status === 200) {
           setTableData(historyResponse.data.history);
         }
@@ -383,12 +413,12 @@ const RiverbankErosion = () => {
         </button>
         {/* Show Tabular Data button below Predict button */}
         <Button
-          className="submit-button"
+          className="submit-button-2"
           variant="contained"
           onClick={() => setOpenTableModal(true)}
           
         >
-        Show Tabular Data
+        View Future River Widths
       </Button>
       </form>
 
@@ -400,6 +430,7 @@ const RiverbankErosion = () => {
         <div id="map" className="map-container"></div>
         {heatmap && (
           <div className="heatmap-container">
+            {/* XAI Insights Header */}
             <div style={{ marginBottom: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#2c3e50' }}>
                 XAI Insights
@@ -408,7 +439,61 @@ const RiverbankErosion = () => {
                 Visualize feature contributions across timesteps. Adjust inputs to explore model behavior.
               </p>
             </div>
-            <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" />
+
+            {/* Heatmap Image */}
+            <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" style={{ width: '100%', marginBottom: '20px' }} />
+
+            {/* Heatmap Input Fields */}
+            <div className="heatmap-inputs" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '14px', color: '#2c3e50', fontWeight: 500 }}>
+                  Points (comma-separated):
+                </label>
+                <input
+                  type="text"
+                  value={points}
+                  onChange={(e) => setPoints(e.target.value)}
+                  placeholder="e.g., 1,2,3,4,5"
+                  className="inputs-heatmap"
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '14px', color: '#2c3e50', fontWeight: 500 }}>
+                  Timesteps:
+                </label>
+                <input
+                  type="number"
+                  value={timesteps}
+                  onChange={(e) => setTimesteps(e.target.value)}
+                  placeholder="Default: 5"
+                  className="inputs-heatmap"
+                />
+              </div>
+
+              {/* Update Heatmap Button */}
+              <button
+                className="submit-button-2"
+                onClick={async () => {
+                  try {
+                    const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
+                      year: parseInt(year),
+                      quarter: parseInt(quarter),
+                      points: points.split(",").map(Number),
+                      timesteps: parseInt(timesteps),
+                    });
+
+                    if (heatmapResponse.data && heatmapResponse.data.heatmap) {
+                      setHeatmap(heatmapResponse.data.heatmap);
+                    }
+                  } catch (err) {
+                    setError("Failed to generate heatmap.");
+                  }
+                }}
+              >
+                Update Heatmap
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -421,24 +506,33 @@ const RiverbankErosion = () => {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Tabular Data</DialogTitle>
-        <DialogContent>
-          <TableContainer component={Paper}>
-            <Table>
+        <DialogTitle className="dialog-title">
+        Future River Width Values
+        </DialogTitle>
+        <DialogContent className="scrollable-dialog-content">
+          <TableContainer>
+            <Table >
               <TableHead>
-                <TableRow>
-                  <TableCell>Year</TableCell>
+                <TableRow className="table-header">
+                  <TableCell className="table-header-cell year-cell">Year</TableCell>
                   {pointCoordinates.map((point) => (
-                    <TableCell key={point.id}>{point.id.replace(/_/g, " ")}</TableCell>
+                    <TableCell
+                      key={point.id}
+                      className="table-header-cell"
+                    >
+                      {`${point.id.replace(/_/g, " ")} (m)`}
+                    </TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {Object.entries(tableRows).map(([year, points]) => (
-                  <TableRow key={year}>
-                    <TableCell>{year}</TableCell>
+                  <TableRow key={year} className="table-body-row">
+                    <TableCell className="table-body-cell year-cell">{year}</TableCell>
                     {pointCoordinates.map((point) => (
-                      <TableCell key={point.id}>{points[point.id] || "-"}</TableCell>
+                      <TableCell key={point.id} className="table-body-cell">
+                        {points[point.id] || "-"}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -447,62 +541,15 @@ const RiverbankErosion = () => {
           </TableContainer>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenTableModal(false)} color="primary">
+          <Button className="submit-button-2" onClick={() => setOpenTableModal(false)} >
             Close
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Optional heatmap inputs */}
-      {showHeatmapInputs && (
-        <div className="heatmap-inputs">
-          <label>
-            Points (comma-separated):
-            <input
-              type="text"
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              placeholder="e.g., 1,2,3,4,5"
-            />
-          </label>
-          <label>
-            Timesteps:
-            <input
-              type="number"
-              value={timesteps}
-              onChange={(e) => setTimesteps(e.target.value)}
-              placeholder="Default: 5"
-            />
-          </label>
-          <button className="submit-button-2"
-            onClick={async () => {
-              try {
-                const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
-                  year: parseInt(year),
-                  quarter: parseInt(quarter),
-                  points: points.split(",").map(Number),
-                  timesteps: parseInt(timesteps),
-                });
+      
 
-                if (heatmapResponse.data && heatmapResponse.data.heatmap) {
-                  setHeatmap(heatmapResponse.data.heatmap);
-                }
-              } catch (err) {
-                setError("Failed to generate heatmap.");
-              }
-            }}
-          >
-            Update Heatmap
-          </button>
-        </div>
-      )}
-
-      <button
-        className="submit-button-2"
-        onClick={() => setShowHeatmapInputs(!showHeatmapInputs)}
-      >
-        {showHeatmapInputs ? "Hide Heatmap Inputs" : "Show Heatmap Inputs"}
-      </button>
+      
     </div>
   );
 };
