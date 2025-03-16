@@ -202,3 +202,15 @@ button:hover {
   margin-bottom: 30px;
 }
 
+/* Dropdown Hover and Focus States */
+.dropdown-select:hover {
+  border-color: #1a6b4b; /* Green border on hover */
+}
+
+.dropdown-select:focus {
+  outline: none;
+  border-color: #1a6b4b; /* Green border on focus */
+  box-shadow: 0 0 0 3px rgba(26, 107, 75, 0.2); /* Green shadow on focus */
+}
+
+

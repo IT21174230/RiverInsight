@@ -8,18 +8,18 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from numpyencoder import NumpyEncoder
 from werkzeug.exceptions import HTTPException
-from utils.meander_migration import return_to_hp
+from utils.meander_migration import return_to_hp, get_raw_predictions
 from utils.meander_migration_xai import clear_images, send_map_to_api
-from utils.com_cache import m_cache, init_cache
+from utils.com_cache import m_cache, init_cache, data_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
 from utils.simulation_tool_xai import *
 from flask_cors import CORS
 
-
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 init_cache(app)
@@ -42,8 +42,7 @@ def clean_up():
     print("Cleared all cache")
     
 atexit.register(clean_up)
-
-# Existing routes
+ 
 @app.route('/')
 def homepage():
     return 'Homepage'
@@ -73,7 +72,7 @@ def get_raw_point_vals():
     query = request.args.to_dict()
     y = int(query['year'])
     q = int(query['quart'])
-    raw_df=get_raw_predictions(y,q)
+    raw_df = get_raw_predictions(y, q)
     try:
         return jsonify(raw_df.to_dict(orient="records"))
     except:
@@ -143,8 +142,6 @@ def predict():
         # Prepare input features
         future_X = prepare_future_input_simulation(date, rainfall, temp)
 
-        simulation_tool_backend
-        # Make predictions
         predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
 
         # Calculate SHAP feature importance
@@ -198,11 +195,9 @@ def get_erosion_history():
                 if year == end_year and quarter > end_quarter:
                     break  # Stop if we've reached the end quarter
 
-                # Prepare input features and make predictions
                 future_X = prepare_future_input(year, quarter, scaler_year)
                 predictions = make_predictions(model, scaler_ts, future_X)
 
-                # Add predictions to history data
                 for point, value in predictions[0].items():
                     history_data.append({
                         'point': point,
@@ -211,12 +206,10 @@ def get_erosion_history():
                         'value': value * 0.625  # Scale the value by 0.625
                     })
 
-        # Prepare response
         return jsonify({'history': history_data}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
