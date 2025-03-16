@@ -142,6 +142,7 @@ def predict():
         # Prepare input features
         future_X = prepare_future_input_simulation(date, rainfall, temp)
 
+        # Make predictions
         predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
 
         # Calculate SHAP feature importance
