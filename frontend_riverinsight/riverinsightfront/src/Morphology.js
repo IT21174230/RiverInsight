@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import MapWithOverlay from "./MeanderMigration";
 import axios from "axios";
-import "./MorphologicalPredictions.css"; 
+import "./MorphologicalPredictions.css";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';  
+
 
 function MorphologicalPredictions() {
   const [year, setYear] = useState(2025);
@@ -15,6 +18,7 @@ function MorphologicalPredictions() {
   const [showPastDataMessage, setShowPastDataMessage] = useState(false);
   const [shiftedData, setShiftedData] = useState([]);
   const [isShifted, setIsShifted] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   useEffect(() => {
     // Close context menu on clicking outside
@@ -89,6 +93,60 @@ function MorphologicalPredictions() {
       setShowImageModal(true);
     }
   };
+
+  const saveTableAsPDF = () => {
+    const doc = new jsPDF();
+    const themeColor = "#1a6b4b";
+  
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(themeColor);
+    doc.text("Meander Migration Prediction", 10, 10);
+
+    // Subtitle
+    doc.setFontSize(10);
+    doc.setTextColor(0); // Reset color to black for the subtitle
+    doc.text("All measurements are given in meters.", 10, 15);
+    
+    const tableHeaders = [
+      "Year", "Quarter", "Control Point 1", "Control Point 2", "Bend 1 Deviation", 
+      "Control Point 3", "Control Point 4", "Bend 2 Deviation", "Control Point 7", 
+      "Control Point 8", "Bend 3 Deviation"
+    ];
+  
+    const tableRows = (isShifted ? shiftedData : tableData).map(row => [
+      row.year, row.quarter, row.c1_dist, row.c2_dist, row.bend_1,
+      row.c3_dist, row.c4_dist, row.bend_2, row.c7_dist, row.c8_dist, row.bend_3
+    ]);
+  
+    autoTable(doc, {
+      head: [tableHeaders],
+      body: tableRows,
+      startY: 20,
+      theme: 'striped', // Striped table for better readability
+      headStyles: {
+        fillColor: themeColor, // Header background color
+        textColor: 'white', // Header text color
+        fontSize: 12, // Font size for headers
+        fontStyle: 'bold', // Bold header text
+      },
+      bodyStyles: {
+        fontSize: 10, // Font size for table rows
+        lineColor: themeColor, // Line color for table borders
+        lineWidth: 0.1, // Line width for borders
+      },
+      alternateRowStyles: {
+        fillColor: '#f2f2f2', // Light gray for alternating rows
+      },
+      columnStyles: {
+        0: { halign: 'center' }, // Center align Year column
+        1: { halign: 'center' }, // Center align Quarter column
+      }
+    });
+  
+    doc.save("meander_migration_table.pdf");
+  };
+  
 
   return (
     <div className="container">
@@ -180,10 +238,41 @@ function MorphologicalPredictions() {
             <button onClick={() => setIsShifted(!isShifted)} className="fetch-button">
               {isShifted ? "Show Total Shift (since 1988)" : "Show Shift by Year"}
             </button>
+              <div className="button-container">
+                <button onClick={() => setShowInfoModal(true)} className="info-button">
+                  Info
+                </button>
+                <button onClick={saveTableAsPDF} className="save-pdf-button">
+                  Save PDF
+                </button>
+                {/* TODO: fix css */}
+              </div>
           </div>
-          
         )}
       </div>
+
+      {showInfoModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setShowInfoModal(false)}>
+              &times;
+            </span>
+            <div className="explanation">
+                  <p>This application predicts the shift of centerline between in relation to predefined constant points <strong>(control points)</strong>.
+                  Three selected meanders (bends) are recognized as sites and two control points are defined for the each bend. </p>
+                  <p>The tabular view is as follows</p>
+                  <ul>
+                    <li><strong>Control Points:</strong> The shift of centerline in relation to the control points since
+                    1988 and year-wise. The direction of the centerline shift is given as either towards or away from the control points.</li>
+                    <li><strong>Bend Deviation</strong> Total magnitude of the deviation in meters.</li>
+                  </ul>
+                  <p>The process of how the distances are caculated in relation to the control points are illustrated below. [['image']]</p>
+                </div>
+          </div>
+        </div>
+      )}
+
+
       {contextMenu && (
         <div
           className="context-menu"
@@ -234,6 +323,7 @@ function MorphologicalPredictions() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

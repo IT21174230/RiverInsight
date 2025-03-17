@@ -9,6 +9,8 @@
     "@react-google-maps/api": "^2.20.6",
     "axios": "^1.8.2",
     "cra-template": "1.2.0",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "numpy-parser": "^1.2.3",
     "react": "^18.3.1",

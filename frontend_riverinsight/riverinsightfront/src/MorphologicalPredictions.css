@@ -336,3 +336,12 @@
   font-size: 18px;
   font-weight: bold;
 }
+
+/* infor button */
+.info-button:hover {
+  background-color: #145c3d;
+  transform: scale(1.05);
+}
+
+
+
