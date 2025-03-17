@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MapWithOverlay from "./MeanderMigration";
 import axios from "axios";
-import "./MorphologicalPredictions.css"; // Import the CSS file
+import "./MorphologicalPredictions.css"; 
 
 function MorphologicalPredictions() {
   const [year, setYear] = useState(2025);
@@ -46,6 +46,11 @@ function MorphologicalPredictions() {
   }, [tableData]);
 
   const fetchTableData = async () => {
+    if (showTable) {
+      setShowTable(false);
+      return;
+    }
+  
     try {
       const response = await axios.get(
         "http://127.0.0.1:5000/meander_migration/params/",
@@ -60,6 +65,7 @@ function MorphologicalPredictions() {
       console.error("Error fetching data:", error.response?.data || error.message);
     }
   };
+  
 
   const handleRightClick = (event, row, index) => {
     event.preventDefault();
@@ -114,8 +120,9 @@ function MorphologicalPredictions() {
         </label>
       </div>
       <button onClick={fetchTableData} className="fetch-button">
-        Show Tabular Data
+        {showTable ? "Hide Tabular Data" : "Show Tabular Data"}
       </button>
+
       <div className="content-wrapper">
         <div className="map-container">
           <MapWithOverlay latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null} />
@@ -145,32 +152,26 @@ function MorphologicalPredictions() {
                       <td>{row.year}</td>
                       <td>{row.quarter}</td>
                       <td>
-                        {row.c1_dist} m ({row.c1_dist < 0 ? "away" : "towards"})
+                        {row.c1_dist} m {isShifted ? "" : `(${row.c1_dist < 0 ? "away" : "towards"})`}
                       </td>
                       <td>
-                        {row.c2_dist} m ({row.c2_dist < 0 ? "away" : "towards"})
+                        {row.c2_dist} m {isShifted ? "" : `(${row.c2_dist < 0 ? "away" : "towards"})`}
+                      </td>
+                      <td>{row.bend_1} m</td>
+                      <td>
+                        {row.c3_dist} m {isShifted ? "" : `(${row.c3_dist < 0 ? "away" : "towards"})`}
                       </td>
                       <td>
-                        {row.bend_1} m ({row.bend_1 < 0 ? "away" : "towards"})
+                        {row.c4_dist} m {isShifted ? "" : `(${row.c4_dist < 0 ? "away" : "towards"})`}
+                      </td>
+                      <td>{row.bend_2} m</td>
+                      <td>
+                        {row.c7_dist} m {isShifted ? "" : `(${row.c7_dist < 0 ? "away" : "towards"})`}
                       </td>
                       <td>
-                        {row.c3_dist} m ({row.c3_dist < 0 ? "away" : "towards"})
+                        {row.c8_dist} m {isShifted ? "" : `(${row.c8_dist < 0 ? "away" : "towards"})`}
                       </td>
-                      <td>
-                        {row.c4_dist} m ({row.c4_dist < 0 ? "away" : "towards"})
-                      </td>
-                      <td>
-                        {row.bend_2} m ({row.bend_2 < 0 ? "away" : "towards"})
-                      </td>
-                      <td>
-                        {row.c7_dist} m ({row.c7_dist < 0 ? "away" : "towards"})
-                      </td>
-                      <td>
-                        {row.c8_dist} m ({row.c8_dist < 0 ? "away" : "towards"})
-                      </td>
-                      <td>
-                        {row.bend_3} m ({row.bend_3 < 0 ? "away" : "towards"})
-                      </td>
+                      <td>{row.bend_3} m</td>
                     </tr>
                   ))}
                 </tbody>
@@ -179,11 +180,6 @@ function MorphologicalPredictions() {
             <button onClick={() => setIsShifted(!isShifted)} className="fetch-button">
               {isShifted ? "Show Total Shift (since 1988)" : "Show Shift by Year"}
             </button>
-            <div className="placeholder-text">
-              <p>Please right-click on desired row to explain the inference</p>
-              <p>A heatmap is given, visualizing the effects of previous four time steps on
-                the inference. The inferences are generated using a Temporal Convolutional Model (TCN)</p>
-            </div>
           </div>
           
         )}
@@ -219,10 +215,22 @@ function MorphologicalPredictions() {
       {showImageModal && (
         <div className="modal">
           <div className="modal-content">
-            <span className="close" onClick={() => setShowImageModal(false)}>
-              &times;
-            </span>
-            <img src={imageSrc} alt="Inference Explanation" className="inference-image" />
+            <span className="close" onClick={() => setShowImageModal(false)}>&times;</span>
+            <div className="modal-body">
+              <div className="map-explanation-container">
+                <img src={imageSrc} alt="Inference Explanation" className="inference-image" />
+                <div className="explanation">
+                  <h3>Saliency Map</h3>
+                  <p>This saliency map shows which past inputs had the most influence on the model’s prediction at timestep 3.</p>
+                  <ul>
+                    <li><strong>Rows:</strong> Past timesteps (1 to 4).</li>
+                    <li><strong>Columns:</strong> Different input features. (Distance to centerline from Control Points)</li>
+                    <li><strong>Color intensity:</strong> Brighter colors (yellow/white) indicate higher importance, while darker colors (red/black) indicate lower influence.</li>
+                  </ul>
+                  <p>This visualization shows which timesteps and features had most influence on TCN (Temporal Convolutional Model)'s predictions. </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
