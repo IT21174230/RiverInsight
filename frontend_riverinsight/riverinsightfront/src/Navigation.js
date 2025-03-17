@@ -18,7 +18,8 @@ function Navigation() {
           <h4>River Meandering Simulation Tool</h4>
           <p>Simulate river behavior to predict and plan for changes.</p>
         </div>
-         
+        
+        
       </div>
     </section>
   );

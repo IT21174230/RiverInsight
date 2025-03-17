@@ -37,6 +37,20 @@ const App = () => {
         </Routes>
  
           <div className="dropdown-container">
+          <label htmlFor="analysis-select">Select Analysis Type:</label>
+          <select
+            id="analysis-select"
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+            className="dropdown-select"
+          >
+            <option value="">-- Select an option --</option>
+            <option value="meander-migration">Meander Migration</option>
+            <option value="erosion">Erosion</option>
+            <option value="flooding">Flooding</option>
+          </select>
+        </div>
+          </main>
             <label htmlFor="analysis-select">Select Analysis Type:</label>
             <select
               id="analysis-select"
@@ -57,14 +71,13 @@ const App = () => {
             {selectedOption === "flooding" && <p><FloodDashboard/></p>}
           </div>
  
-        </main>
- 
+    
  
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
         </footer>
-      </div>
+  
     </Router>
   );
 };

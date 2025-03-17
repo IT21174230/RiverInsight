@@ -1,21 +1,25 @@
 from flask import Flask, request, jsonify
+from datetime import datetime
 import atexit
 import os
 import shutil
+
 from utils.meander_migration import return_to_hp, get_raw_predictions
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
-from utils.flood_backend import get_prediction
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
+
+from  utils.floodLogic import flood_prediction_logic
+
 from flask_cors import CORS
 
 # Flask constructor takes the name of current module (__name__) as argument.
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
-init_cache(app)
+# init_cache(app)
 
-# Load resources (model and scalers) globally for riverbank erosion
+# # Load resources (model and scalers) globally for riverbank erosion
 model, scaler_ts, scaler_year = load_resources()
 
 def clean_up():
@@ -152,23 +156,34 @@ def get_erosion_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route("/predict", methods=["GET", "OPTIONS"])
+def get_prediction():
+    # Handle the preflight OPTIONS request
+    if request.method == "OPTIONS":
+        return "", 200  # Return empty response with 200 OK for preflight
 
-@app.route('/predict_flood', methods=['POST'])
-def predict_flood():
+    # Grab date from query parameters
+    date_str = request.args.get("date")
+    if not date_str:
+        return jsonify({"error": "Missing date parameter. Use YYYY-MM-DD format."}), 400
+
+    # Validate date format
     try:
-        data = request.get_json()
-        date_str = data.get('date')
-        
-        if not date_str:
-            return jsonify({'error': 'Date is required'}), 400
+        datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-        prediction = get_prediction(date_str)
-        return jsonify(prediction), 200
-
+    # Call the heavy-lifting logic
+    try:
+        result_dict = flood_prediction_logic(date_str)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": f"Error processing prediction: {str(e)}"}), 500
 
+    # If there's an error in the logic, result_dict will have {"error": ...}
+    if "error" in result_dict:
+        return jsonify(result_dict), 400
 
+    return jsonify(result_dict)
 # Start the Flask app (unchanged)
 if __name__ == '__main__':
     app.run(debug=True)
