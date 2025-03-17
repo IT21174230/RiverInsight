@@ -144,22 +144,40 @@ function MorphologicalPredictions() {
                     <tr key={index} onContextMenu={(e) => handleRightClick(e, row, index)}>
                       <td>{row.year}</td>
                       <td>{row.quarter}</td>
-                      <td>{row.c1_dist}</td>
-                      <td>{row.c2_dist}</td>
-                      <td>{row.bend_1}</td>
-                      <td>{row.c3_dist}</td>
-                      <td>{row.c4_dist}</td>
-                      <td>{row.bend_2}</td>
-                      <td>{row.c7_dist}</td>
-                      <td>{row.c8_dist}</td>
-                      <td>{row.bend_3}</td>
+                      <td>
+                        {row.c1_dist} m ({row.c1_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.c2_dist} m ({row.c2_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.bend_1} m ({row.bend_1 < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.c3_dist} m ({row.c3_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.c4_dist} m ({row.c4_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.bend_2} m ({row.bend_2 < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.c7_dist} m ({row.c7_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.c8_dist} m ({row.c8_dist < 0 ? "away" : "towards"})
+                      </td>
+                      <td>
+                        {row.bend_3} m ({row.bend_3 < 0 ? "away" : "towards"})
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <button onClick={() => setIsShifted(!isShifted)} className="fetch-button">
-              {isShifted ? "Show Total Shift" : "Show Shift by Year"}
+              {isShifted ? "Show Total Shift (since 1988)" : "Show Shift by Year"}
             </button>
             <div className="placeholder-text">
               <p>Please right-click on desired row to explain the inference</p>
