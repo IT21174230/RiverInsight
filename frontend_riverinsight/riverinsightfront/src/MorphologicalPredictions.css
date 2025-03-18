@@ -110,26 +110,26 @@
 /* ---------------- MAP STYLING ---------------- */
 .map-container {
   flex: 1;
-  min-width: 50%;
+  min-width: 48%;
   height: 500px;
-  background-color: #e0e0e0; 
+  background-color: #e0e0e0;
   border-radius: 8px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
-
 /* ---------------- TABLE ANIMATION ---------------- */
+
 .table-container {
   flex: 1;
-  min-width: 50%;
+  min-width: 48%;
   max-height: 500px;
   overflow-y: auto;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-  border-radius: 8px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   background-color: white;
   padding: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 .table-container.show {
@@ -137,14 +137,17 @@
   transform: translateY(0);
 }
 
+.map-container,
+.table-container {
+  height: 500px;
+}
+
 /* ---------------- TABLE STYLING ---------------- */
 .table-wrapper {
   width: 100%;
-  max-height: 400px;
   overflow-y: auto;
-  border-radius: 8px;
+  flex-grow: 1; /* Ensures the table takes available space */
 }
-
 
 .styled-table th, 
 .styled-table td {
@@ -383,3 +386,9 @@
   transform: scale(1.05);
 }
 
+.info-modal{
+  max-width: 1000px;
+  display: block;
+  justify-content: center;
+  align-items: center;
+}
