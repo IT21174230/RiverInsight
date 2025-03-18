@@ -9,15 +9,16 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
 } from "@mui/material";
 import axios from "axios";
+import html2canvas from "html2canvas"; // Import html2canvas
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import React, { useEffect, useState } from "react";
 import "./RiverbankErosion.css";
-
 // Fix for default marker icons not showing in Leaflet
+import { jsPDF } from "jspdf"; // Import jsPDF
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIconShadow from "leaflet/dist/images/marker-shadow.png";
@@ -38,6 +39,8 @@ const RiverbankErosion = () => {
   const [timesteps, setTimesteps] = useState(5);
   const [tableData, setTableData] = useState([]);
   const [openTableModal, setOpenTableModal] = useState(false); // State to control table modal visibility
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
 
   // Coordinates for each point (latitude, longitude)
   const pointCoordinates = [
@@ -111,7 +114,7 @@ const RiverbankErosion = () => {
 
   // Initialize the map
   useEffect(() => {
-    const mapInstance = L.map("map").setView([7.60367, 79.80292], 13); // Centered on Deduru Oya
+    const mapInstance = L.map("map").setView([7.60589, 79.81261], 15); // Centered on Deduru Oya
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
@@ -239,7 +242,7 @@ const RiverbankErosion = () => {
         erosionRate = 0;
       } else if (erosionValue) {
         // Calculate erosion rate if yearsDifference is greater than 0
-        erosionRate = (erosionValue.value / yearsDifference).toFixed(2);
+        erosionRate = ((erosionValue.value * 0.625) / yearsDifference).toFixed(2);
       } else {
         // If erosionValue is not available, set erosion rate to 0
         erosionRate = 0;
@@ -259,13 +262,16 @@ const RiverbankErosion = () => {
 
       // UI for popup
       if (erosionValue && userPrediction) {
-        const popupContent = `
+        
+        const popupContent =
+        // <div class="popup-row">
+        //     <span class="popup-label">Erosion:</span>
+        //     <span class="popup-value">${erosionValue ? `${erosionValue.value.toFixed(2)} m` : "N/A"}</span>
+        //   </div>
+         `
         <div class="popup-container">
           <h3>${point.id.replace(/_/g, " ")}</h3>
-          <div class="popup-row">
-            <span class="popup-label">Erosion:</span>
-            <span class="popup-value">${erosionValue ? `${erosionValue.value.toFixed(2)} m` : "N/A"}</span>
-          </div>
+          
           <div class="popup-row">
             <span class="popup-label">Erosion Rate:</span>
             <span class="popup-value">
@@ -373,6 +379,57 @@ const RiverbankErosion = () => {
   };
 
   const tableRows = transformTableData(tableData);
+  
+  // Function to generate and download the PDF
+  const downloadTableAsPDF = () => {
+    // Get the table element
+    const tableElement = document.querySelector(".scrollable-dialog-content table");
+
+    // Use html2canvas to capture the table as an image
+    html2canvas(tableElement).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png"); // Convert canvas to image data
+
+      // Create a new jsPDF instance
+      const doc = new jsPDF("landscape"); // Use "landscape" for better table fit
+
+      // Add title and description
+      doc.setFontSize(18);
+      doc.text("Future River Width Values", 14, 22);
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      doc.text("This table represents the predicted future river width values for various points over the years.", 14, 30);
+
+      // Add the table image to the PDF
+      const imgWidth = 280; // Width of the image in the PDF
+      const imgHeight = (canvas.height * imgWidth) / canvas.width; // Maintain aspect ratio
+      doc.addImage(imgData, "PNG", 10, 40, imgWidth, imgHeight);
+
+      // Save the PDF
+      doc.save("Future_River_Width_Values.pdf");
+    });
+  };
+
+
+  // Handle checkbox change
+  const handleCheckboxChange = (number) => {
+    // Convert the current points string to an array of numbers
+    const selectedNumbers = points.split(",").filter(Boolean).map(Number);
+
+    // Toggle the selected number
+    if (selectedNumbers.includes(number)) {
+      // If the number is already selected, remove it
+      const updatedNumbers = selectedNumbers.filter((num) => num !== number);
+      setPoints(updatedNumbers.join(","));
+    } else {
+      // If the number is not selected, add it
+      const updatedNumbers = [...selectedNumbers, number];
+      setPoints(updatedNumbers.sort((a, b) => a - b).join(","));
+    }
+  };
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
 
   return (
     <div className="riverbank-erosion">
@@ -432,7 +489,7 @@ const RiverbankErosion = () => {
           <div className="heatmap-container">
             {/* XAI Insights Header */}
             <div style={{ marginBottom: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#2c3e50' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#1a6b4b' }}>
                 XAI Insights
               </h3>
               <p style={{ fontSize: '14px', color: '#7f8c8d', margin: 0 }}>
@@ -446,26 +503,67 @@ const RiverbankErosion = () => {
             {/* Heatmap Input Fields */}
             <div className="heatmap-inputs" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '14px', color: '#2c3e50', fontWeight: 500 }}>
-                  Points (comma-separated):
-                </label>
+
+              <div>
+                <div className="dropdown-button-container">
+                  <div
+                    className={`dropdown-checklist ${isDropdownOpen ? "active" : ""}`}
+                    onClick={toggleDropdown}
+                  >
+                    <button className="dropdown-toggle">
+                      Select Points (1-25) ▼
+                    </button>
+                    <div className="dropdown-content">
+                      <div className="checklist-container">
+                        {Array.from({ length: 25 }, (_, i) => i + 1).map((number) => (
+                          <div key={number} className="checklist-item">
+                            <input
+                              type="checkbox"
+                              id={`number-${number}`}
+                              checked={points.split(",").includes(number.toString())}
+                              onChange={() => handleCheckboxChange(number)}
+                            />
+                            <label htmlFor={`number-${number}`}>{number}</label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="selected-numbers">
+                  <strong>Selected Points:</strong> {points || "None"}
+                </div>
+
+                {/* Hidden input to store the formatted numbers */}
                 <input
                   type="text"
                   value={points}
-                  onChange={(e) => setPoints(e.target.value)}
+                  onChange={(e) => setPoints(e.target.value)} // Keep this for compatibility
                   placeholder="e.g., 1,2,3,4,5"
                   className="inputs-heatmap"
+                  style={{ display: "none" }} // Hide the text input
                 />
               </div>
+              </div>
 
-              <div style={{ flex: 1 }}>
+              <div className="input-timestep">
                 <label style={{ fontSize: '14px', color: '#2c3e50', fontWeight: 500 }}>
                   Timesteps:
                 </label>
                 <input
                   type="number"
                   value={timesteps}
-                  onChange={(e) => setTimesteps(e.target.value)}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (value >= 2 && value <= 10) {
+                      setTimesteps(value);
+                    }
+                  }}
+                  onKeyDown={(e) => e.preventDefault()} // Prevent manual typing
+                  min={2}
+                  max={10}
                   placeholder="Default: 5"
                   className="inputs-heatmap"
                 />
@@ -473,7 +571,7 @@ const RiverbankErosion = () => {
 
               {/* Update Heatmap Button */}
               <button
-                className="submit-button-2"
+                className="submit-button-3"
                 onClick={async () => {
                   try {
                     const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
@@ -544,6 +642,9 @@ const RiverbankErosion = () => {
           <Button className="submit-button-2" onClick={() => setOpenTableModal(false)} >
             Close
           </Button>
+          <Button className="submit-button-2" onClick={downloadTableAsPDF}>
+          Download as PDF
+        </Button>
         </DialogActions>
       </Dialog>
 
