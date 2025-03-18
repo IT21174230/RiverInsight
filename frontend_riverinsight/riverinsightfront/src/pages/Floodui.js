@@ -10,7 +10,7 @@ import {
   Timer 
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import "../styles/FloodUi.css";
+import "../styles/FloodUi.css";  // Changed from index.css to FloodUi.css
 
 export default function FloodDashboard() {
   const [dashboardData, setDashboardData] = useState({
@@ -28,59 +28,64 @@ export default function FloodDashboard() {
       windSpeed: ""
     },
     explainableFactor: "",
-    floodEffect: {}
+    floodEffect: {}  // NEW: flood effects on land cover and land usage
   });
-  const [selectedDate, setSelectedDate] = useState("2025-03-17");
+  const [selectedDate, setSelectedDate] = useState("2025-03-15");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  const fetchPrediction = async (date) => {
+  const fetchPrediction = (date) => {
     setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`http://localhost:8000/predict?date=${date}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        mode: 'cors'
+    // Changed port to 5000 and added error handling
+    fetch(`http://localhost:5000/predict_flooding?date=${date}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors'
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Received data from Flask backend:", data); // Debug log
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        setDashboardData({
+          date: data.date,
+          predictedWaterArea: `${data.predicted_water_area_km2} km²`,
+          floodWarning: data.flood_warning,
+          chartData: data.chart_data,
+          riskLevel: data.risk_level || data.flood_warning,
+          alerts: data.alerts || [],
+          mainFacts: {
+            temperature: data.predicted_temperature
+              ? `${data.predicted_temperature} °C`
+              : "N/A",
+            waterLevel: `${data.current_water_area_km2} km²`,
+            rainfall: `${data.rainfall_mm} mm`,
+            humidity: data.predicted_humidity
+              ? `${data.predicted_humidity} %`
+              : "N/A",
+            windSpeed: data.predicted_wind_speed
+              ? `${data.predicted_wind_speed} km/h`
+              : "N/A"
+          },
+          explainableFactor: data.explainable_factor.explanation || "",
+          floodEffect: data.flood_effect  // NEW: set flood effect data
+        });
+      })
+      .catch((err) => {
+        console.error("Error fetching prediction from Flask:", err);
+        alert(`Failed to get prediction: ${err.message}`);
+      })
+      .finally(() => {
+        setLoading(false);
       });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
-      console.log("Received data from Flask backend:", data);
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setDashboardData({
-        date: data.date || "",
-        predictedWaterArea: data.predicted_water_area_km2 ? `${data.predicted_water_area_km2} km²` : "N/A",
-        floodWarning: data.flood_warning || "No warning",
-        chartData: data.chart_data || [],
-        riskLevel: data.risk_level || data.flood_warning || "Unknown",
-        alerts: data.alerts || [],
-        mainFacts: {
-          temperature: data.predicted_temperature ? `${data.predicted_temperature} °C` : "N/A",
-          waterLevel: data.current_water_area_km2 ? `${data.current_water_area_km2} km²` : "N/A",
-          rainfall: data.rainfall_mm ? `${data.rainfall_mm} mm` : "N/A",
-          humidity: data.predicted_humidity ? `${data.predicted_humidity} %` : "N/A",
-          windSpeed: data.predicted_wind_speed ? `${data.predicted_wind_speed} km/h` : "N/A"
-        },
-        explainableFactor: data.explainable_factor?.explanation || "",
-        floodEffect: data.flood_effect || {}
-      });
-    } catch (err) {
-      console.error("Error fetching prediction from Flask:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -88,16 +93,21 @@ export default function FloodDashboard() {
   }, [selectedDate]);
 
   const getRiskIcon = (risk) => {
-    if (risk === "Low Risk") return <CheckCircle className="icon-risk success" />;
-    else if (risk === "Moderate Risk") return <AlertTriangle className="icon-risk warning" />;
-    else if (risk === "High Risk") return <AlertCircle className="icon-risk danger" />;
-    return <AlertCircle className="icon-risk default" />;
+    if (risk === "Low Risk") {
+      return <CheckCircle className="icon-risk success" />;
+    } else if (risk === "Moderate Risk") {
+      return <AlertTriangle className="icon-risk warning" />;
+    } else if (risk === "High Risk") {
+      return <AlertCircle className="icon-risk danger" />;
+    } else {
+      return <AlertCircle className="icon-risk default" />;
+    }
   };
 
   const { date, predictedWaterArea, floodWarning, chartData, riskLevel, alerts, mainFacts, explainableFactor, floodEffect } = dashboardData;
 
   return (
-    <div className="flood-page"> {/* Ensure top-level wrapper */}
+    <div className="flood-page">
       <div className="flood-container">
         <h1 className="flood-title">Flood Prediction</h1>
         
@@ -108,24 +118,16 @@ export default function FloodDashboard() {
             id="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            min="2025-01-01"
           />
-          <button onClick={() => fetchPrediction(selectedDate)} disabled={loading}>
-            {loading ? "Loading..." : "Get Prediction"}
+          <button onClick={() => fetchPrediction(selectedDate)}>
+            Get Prediction
           </button>
         </div>
-
-        {error && (
-          <div className="error-message">
-            <AlertCircle className="icon" />
-            <p>{error}</p>
-          </div>
-        )}
 
         <div className="summary-grid">
           <div className="summary-box date">
             <Calendar className="icon" />
-            <span>{date || "N/A"}</span>
+            <span>{date}</span>
           </div>
           <div className="summary-box">
             <span>Predicted Water Area</span>
@@ -138,9 +140,10 @@ export default function FloodDashboard() {
         </div>
 
         <div className="main-grid">
+          {/* Left Column */}
           <div className="left-column">
             <div className="chart-section">
-              <h2>Flood Details (Jan to {date || "N/A"})</h2>
+              <h2>Flood Details (Jan to {date})</h2>
               <div className="chart-wrapper">
                 <ResponsiveContainer>
                   <AreaChart data={chartData}>
@@ -167,6 +170,7 @@ export default function FloodDashboard() {
             </div>
           </div>
 
+          {/* Right Column */}
           <div className="right-column">
             <div className="risk-alert-row">
               <div className="risk-section">
@@ -195,10 +199,26 @@ export default function FloodDashboard() {
               <h3>Main Facts for Flood</h3>
               <div className="facts-grid">
                 {[
-                  { icon: <ThermometerSun className="icon" />, label: "Temperature", value: mainFacts.temperature },
-                  { icon: <Droplets className="fact-icon water-level" />, label: "Water Level", value: mainFacts.waterLevel },
-                  { icon: <Cloud className="fact-icon rainfall" />, label: "Rainfall", value: mainFacts.rainfall },
-                  { icon: <Droplets className="fact-icon humidity" />, label: "Humidity", value: mainFacts.humidity },
+                  {
+                    icon: <ThermometerSun className="icon" />,
+                    label: "Temperature",
+                    value: mainFacts.temperature
+                  },
+                  {
+                    icon: <Droplets className="fact-icon water-level" />,
+                    label: "Water Level",
+                    value: mainFacts.waterLevel
+                  },
+                  {
+                    icon: <Cloud className="fact-icon rainfall" />,
+                    label: "Rainfall",
+                    value: mainFacts.rainfall
+                  },
+                  {
+                    icon: <Droplets className="fact-icon humidity" />,
+                    label: "Humidity",
+                    value: mainFacts.humidity
+                  },
                 ].map((fact, idx) => (
                   <div key={idx} className="fact-item">
                     {fact.icon}
