@@ -52,11 +52,6 @@ function MorphologicalPredictions() {
   }, [tableData]);
 
   const fetchTableData = async () => {
-    if (showTable) {
-      setShowTable(false);
-      return;
-    }
-  
     try {
       const response = await axios.get(
         "http://127.0.0.1:5000/meander_migration/params/",
@@ -180,10 +175,18 @@ function MorphologicalPredictions() {
         </label>
       </div>
       <button data-tooltip-id="fetch-data" onClick={fetchTableData} className="fetch-button">
-        {showTable ? "Hide Tabular Data" : "Show Tabular Data"}
+       Predict and Show Tabular Data
       </button>
       <Tooltip id="fetch-data" content="Display tabular data for the selected year and quarter" />
-
+      {showTable && (
+        <>
+        <button data-tooltip-id="hide-data" onClick={() => setShowTable(false)} className="hide-button">
+          Hide Tabular Data
+        </button>
+        <Tooltip id="hide-data" content="Hide tabular data" />
+        </>
+      )}
+      
       <div className="content-wrapper">
         <div className="map-container">
           <MapWithOverlay latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null} />

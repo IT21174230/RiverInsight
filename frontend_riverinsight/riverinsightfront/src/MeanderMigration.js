@@ -70,7 +70,7 @@ const MapWithOverlay = ({ latestData }) => {
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={17}
-        center={overlayPoints[currentIndex]}
+        center={overlayPoints[currentIndex] || center} // Fallback to center
         mapTypeId="satellite"
         options={{
           scaleControl: true,
@@ -81,22 +81,24 @@ const MapWithOverlay = ({ latestData }) => {
           mapTypeControl: true,
         }}
       >
+
         {imageUrl && <GroundOverlay bounds={overlayBounds} url={imageUrl} opacity={0.8} />}
 
         {[overlayPoints[currentIndex], overlayPoints[currentIndex + 1]].map((point, index) => (
-          point && (
+          point ? (
             <Marker
-              title="Click for information"
-              key={index}
+              key={`${point.lat}-${point.lng}`}
               position={{ lat: point.lat, lng: point.lng }}
+              title="Click for information"
               onClick={() =>
                 setSelectedPoint(
                   selectedPoint?.lat === point.lat && selectedPoint?.lng === point.lng ? null : point
                 )
               }
             />
-          )
+          ) : null
         ))}
+
 
         {selectedPoint && (
           <InfoWindow position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }} onCloseClick={() => setSelectedPoint(null)}>

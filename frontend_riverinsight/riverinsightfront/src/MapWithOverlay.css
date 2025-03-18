@@ -73,3 +73,7 @@
 .navigation-buttons button:active {
   transform: scale(0.9);
 }
+
+.gm-style img {
+  display: block !important;
+}
