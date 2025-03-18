@@ -9,6 +9,8 @@
     "@react-google-maps/api": "^2.20.6",
     "axios": "^1.8.2",
     "cra-template": "1.2.0",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "numpy-parser": "^1.2.3",
@@ -18,7 +20,11 @@
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.3.0",
     "react-scripts": "5.0.1",
+<<<<<<< HEAD
     "recharts": "^2.15.1",
+=======
+    "react-tooltip": "^5.28.0",
+>>>>>>> meandering_final_modifications
     "web-vitals": "^4.2.4"
   },
   "scripts": {
