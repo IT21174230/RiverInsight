@@ -4,7 +4,7 @@ import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
-from utils.com_cache import m_cache
+from utils.com_cache import m_cache, data_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
@@ -15,6 +15,8 @@ scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
 pca=r'data_dir\pca_obj.pkl'
 past_migration_vals=r'data_dir\MeanderingInterploatedUpdated.csv'
+latitudes=r'data_dir\y_coords_7.5m.npy'
+longitudes=r'data_dir\x_coords_7.5m.npy'
 
 model=joblib.load(model)
 scaler_year=joblib.load(scaler_year)
@@ -22,6 +24,10 @@ scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
 pca=joblib.load(pca)
 past_vals=pd.read_csv(past_migration_vals, index_col=0)
+latitudes=np.load(latitudes)
+longitudes=np.load(longitudes)
+
+inti_values=init_values = past_vals.iloc[0]
 
 model.training=False
 
@@ -126,16 +132,20 @@ def predict_meandering(model, last_known_input, n_steps, pca, years, quarters, s
           predictions.append(tf.reshape(pred, shape=[-1]))
           
     return np.array(predictions), maps
-  
-# years, quarters, n_steps=get_new_time(2026, 1)
-# # pass these as parameters to test w postman
-
 
 def get_past_meandering_values(df, target_year, target_quarter):
   df['year'] = df['name'].apply(lambda x: int(x.split('-')[0]))
   df['quarter'] = df['name'].apply(lambda x: int(x.split('-')[1]))
-  df.drop(columns=['name','c5_dist','c6_dist'], inplace=True)
+
+  columns_to_drop = ['name', 'c5_dist', 'c6_dist']
+  df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
   filtered_df = df[(df["year"] < target_year) | ((df["year"] == target_year) & (df["quarter"] <= target_quarter))]
+  if not filtered_df.empty:
+      numeric_cols = filtered_df.columns.difference(["year", "quarter"])
+      filtered_df[numeric_cols] = ((filtered_df[numeric_cols] - filtered_df.iloc[0][numeric_cols]) * 0.625).astype(float).round(4)
+      filtered_df['bend_1'] = np.abs((filtered_df['c1_dist'] - filtered_df['c2_dist']).astype(float).round(4))
+      filtered_df['bend_2'] = np.abs((filtered_df['c3_dist'] - filtered_df['c4_dist']).astype(float).round(4))
+      filtered_df['bend_3'] = np.abs((filtered_df['c7_dist'] - filtered_df['c8_dist']).astype(float).round(4))
   return filtered_df
 
 def return_to_hp(year, quarter):
@@ -145,7 +155,7 @@ def return_to_hp(year, quarter):
       
       cached_data=m_cache.get(cache_key)
       
-      if cached_data:
+      if cached_data is not None:
         predictions, maps=cached_data
         years, quarters, n_steps=get_new_time(year, quarter)
 
@@ -153,17 +163,73 @@ def return_to_hp(year, quarter):
         years, quarters, n_steps=get_new_time(year, quarter)
         predictions, maps= predict_meandering(model, last_known_input, n_steps, pca, years, quarters, scaler_year)
         m_cache.set(cache_key, (predictions, maps))
-        
-      unscaled_predictions=scaler_ts.inverse_transform(predictions)
-      predictions_df=pd.DataFrame({'year': years, 'quarter': quarters})
-      targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist','c7_dist','c8_dist']
+      unscaled_predictions = scaler_ts.inverse_transform(predictions)
+
+      # the raw predicitons to do post processing for the standard overlay image 
+      raw_df = pd.DataFrame(unscaled_predictions / 12, dtype=float, columns=['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist'])  
+
+      # predictions converted to meters for the table
+      transformed_predictions = (unscaled_predictions / 12) * 0.625
+      predictions_df = pd.DataFrame({'year': years, 'quarter': quarters})
+      targets = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
+
       for i, col in enumerate(targets):
-        predictions_df[col] = unscaled_predictions[:, i]
+        predictions_df[col] = transformed_predictions[:, i]
+
+      data_cache.set(cache_key, raw_df)
+
+      predictions_df[targets] = predictions_df[targets] - inti_values[targets].values
+      predictions_df[targets] = predictions_df[targets].astype(float).round(4)
+
+      predictions_df['bend_1'] = np.abs((predictions_df['c1_dist'] - predictions_df['c2_dist']).astype(float).round(4))
+      predictions_df['bend_2'] = np.abs((predictions_df['c3_dist'] - predictions_df['c4_dist']).astype(float).round(4))
+      predictions_df['bend_3'] = np.abs((predictions_df['c7_dist'] - predictions_df['c8_dist']).astype(float).round(4))
+
       return predictions_df
+      
     except Exception as e:
       return f'no predictions generated due to \n{e}'
   else:
-
+    past_vals=pd.read_csv(past_migration_vals, index_col=0)
     return get_past_meandering_values(past_vals, year, quarter)
+  
+def get_perpendicular_point(known_coord, d_shift):
+  shifted_coord=d_shift+known_coord
+  return shifted_coord
+
+def get_coordinates(x_pix, y_pix):
+  lat=latitudes[x_pix, y_pix]
+  long=longitudes[x_pix, y_pix]
+
+  return (lat,long)
+  
+def get_raw_predictions(year, quarter):
+  cache_key=f'{year}_{quarter}'
+  raw_df=data_cache.get(cache_key)
+  control_points_std=[[248, 309], [236, 309], [409, 330], [409, 344], [533, 374], [548, 383], [497, 305], [513, 298]]
+  if raw_df is not None:
+    dist_cols = raw_df.select_dtypes(include=['number'])
+    latest_infer = dist_cols.iloc[-1].to_dict()
+
+    new_centerline_points={}
+    centerline_coordinates=[]
+
+    index_mapping = {
+    0: lambda l: [get_perpendicular_point(control_points_std[0][1], l), control_points_std[0][1]],
+    1: lambda l: [get_perpendicular_point(control_points_std[1][1], l), control_points_std[1][1]],
+    3: lambda l: [control_points_std[2][0], get_perpendicular_point(control_points_std[2][0], l)],
+    4: lambda l: [control_points_std[3][0], get_perpendicular_point(control_points_std[3][0], l)]
+    }
+
+    for i, l in enumerate(latest_infer.values()):  
+      if i in index_mapping: 
+          new_centerline_points[i] = index_mapping[i](l)
+
+    for i in new_centerline_points.values():
+      centerline_coordinates.append(get_coordinates(int(i[0]), int(i[1])))
+    
+    return centerline_coordinates
+  else:
+    return 'predict first to get point values'
 
 
