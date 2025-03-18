@@ -1,21 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
-import './App.css';
+import "./App.css";
 import MorphologicalPredictions from "./Morphology";
-import Navigation from './Navigation';
+import Navigation from "./Navigation";
 import RiverbankErosion from "./riverbankErosion";
 import FloodDashboard from "./pages/Floodui";
 
 const App = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  const analysisRef = useRef(null);
 
   const handleMorphologicalClick = () => {
     setShowDropdown((prev) => !prev);
-    if (showDropdown) {
-      setSelectedOption(""); // Reset dropdown selection when hiding
+    if (!showDropdown) {
+      setSelectedOption(""); // Reset dropdown selection when opening
     }
   };
+
+  // Focus on the dropdown when it appears
+  useEffect(() => {
+    if (showDropdown && dropdownRef.current) {
+      dropdownRef.current.focus();
+    }
+  }, [showDropdown]);
+
+  // Scroll to the analysis section when an option is selected
+  useEffect(() => {
+    if (selectedOption && analysisRef.current) {
+      analysisRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedOption]);
 
   return (
     <Router>
@@ -33,7 +49,6 @@ const App = () => {
             <p>Explore our tools to analyze erosion, flooding, and meandering threats.</p>
           </section>
 
-          {/* Pass the click handler to Navigation */}
           <Navigation onMorphologicalClick={handleMorphologicalClick} />
 
           {showDropdown && (
@@ -41,6 +56,7 @@ const App = () => {
               <label htmlFor="analysis-select">Select Analysis Type:</label>
               <select
                 id="analysis-select"
+                ref={dropdownRef}
                 value={selectedOption}
                 onChange={(e) => setSelectedOption(e.target.value)}
                 className="dropdown-select"
@@ -54,17 +70,18 @@ const App = () => {
           )}
         </main>
 
-        {/* Show selected analysis content only if dropdown is visible */}
         {showDropdown && (
-          <div className="analysis-content expanded-width">
+          <div className="analysis-content full-width" ref={analysisRef}>
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
-            {selectedOption === "flooding" && <FloodDashboard/>}
+            {selectedOption === "flooding" && <FloodDashboard />}
           </div>
         )}
 
         <footer className="footer">
-          <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>
+          <p>
+            Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a>
+          </p>
         </footer>
       </div>
     </Router>

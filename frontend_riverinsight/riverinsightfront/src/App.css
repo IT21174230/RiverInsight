@@ -202,3 +202,9 @@ button:hover {
   margin-bottom: 30px;
 }
 
+.full-width {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}

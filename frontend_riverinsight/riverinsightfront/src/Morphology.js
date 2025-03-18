@@ -208,8 +208,8 @@ function MorphologicalPredictions() {
                     <th>Control Point 3</th>
                     <th>Control Point 4</th>
                     <th>Bend 2 Deviation</th>
-                    <th>Control Point 7</th>
-                    <th>Control Point 8</th>
+                    <th>Control Point 5</th>
+                    <th>Control Point 6</th>
                     <th>Bend 3 Deviation</th>
                   </tr>
                 </thead>
@@ -271,7 +271,7 @@ function MorphologicalPredictions() {
             <span className="close" onClick={() => setShowInfoModal(false)}>
               &times;
             </span>
-            <div className="explanation">
+            <div className="info-modal">
                   <p>This application predicts the shift of centerline between in relation to predefined constant points <strong>(control points)</strong>.
                   Three selected meanders (bends) are recognized as sites and two control points are defined for the each bend. </p>
                   <p>The tabular view is as follows</p>
@@ -280,7 +280,7 @@ function MorphologicalPredictions() {
                     1988 and year-wise. The direction of the centerline shift is given as either towards or away from the control points.</li>
                     <li><strong>Bend Deviation</strong> Magnitude of the deviation in meters.</li>
                   </ul>
-                  <p>The process of how the distances are caculated in relation to the control points are illustrated below. [['image']]</p>
+                  
                 </div>
           </div>
         </div>

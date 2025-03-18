@@ -51,13 +51,13 @@ const MapWithOverlay = ({ latestData, earliestData }) => {
     const migrationRates = {
       c1_rate: yearsElapsed !== 0 ? ((latestData.c1_dist - earliestData.c1_dist) / yearsElapsed).toFixed(4) : "N/A",
       c2_rate: yearsElapsed !== 0 ? ((latestData.c2_dist - earliestData.c2_dist) / yearsElapsed).toFixed(4) : "N/A",
-      bend_1_rate: yearsElapsed !== 0 ? ((latestData.bend_1 - earliestData.bend_1) / yearsElapsed).toFixed(4) : "N/A",
+      bend_1_rate: yearsElapsed !== 0 ? Math.abs(((latestData.bend_1 - earliestData.bend_1) / yearsElapsed).toFixed(4)) : "N/A",
       c3_rate: yearsElapsed !== 0 ? ((latestData.c3_dist - earliestData.c3_dist) / yearsElapsed).toFixed(4) : "N/A",
       c4_rate: yearsElapsed !== 0 ? ((latestData.c4_dist - earliestData.c4_dist) / yearsElapsed).toFixed(4) : "N/A",
-      bend_2_rate: yearsElapsed !== 0 ? ((latestData.bend_2 - earliestData.bend_2) / yearsElapsed).toFixed(4) : "N/A",
+      bend_2_rate: yearsElapsed !== 0 ? Math.abs(((latestData.bend_2 - earliestData.bend_2) / yearsElapsed).toFixed(4)) : "N/A",
       c7_rate: yearsElapsed !== 0 ? ((latestData.c7_dist - earliestData.c7_dist) / yearsElapsed).toFixed(4) : "N/A",
       c8_rate: yearsElapsed !== 0 ? ((latestData.c8_dist - earliestData.c8_dist) / yearsElapsed).toFixed(4) : "N/A",
-      bend_3_rate: yearsElapsed !== 0 ? ((latestData.bend_3 - earliestData.bend_3) / yearsElapsed).toFixed(4) : "N/A",
+      bend_3_rate: yearsElapsed !== 0 ? Math.abs(((latestData.bend_3 - earliestData.bend_3) / yearsElapsed).toFixed(4)) : "N/A",
     };
     
 
@@ -65,12 +65,12 @@ const MapWithOverlay = ({ latestData, earliestData }) => {
     const updatedPoints = defaultOverlayPoints.map((point, index) => {
       let migrationInfo = `Control Point Shift: ${migrationRates[`c${index + 1}_rate`] || "N/A"} m/year`;
 
-      // Assign corresponding bend migration rates
+      // Assign bend migration rates
       if (index < 2) migrationInfo += `\n\nBend 1 Rate: ${migrationRates.bend_1_rate} m/year`;
       else if (index < 4) migrationInfo += `\n\nBend 2 Rate: ${migrationRates.bend_2_rate} m/year`;
       else migrationInfo += `\nBend 3 Rate: ${migrationRates.bend_3_rate} m/year`;
 
-      return { ...point, data: migrationInfo };
+      return { ...point, data: migrationInfo, title: `Point ${index + 1} Data` };;
     });
 
     setOverlayPoints(updatedPoints);
@@ -119,15 +119,16 @@ const MapWithOverlay = ({ latestData, earliestData }) => {
           ) : null
         )}
 
-        {selectedPoint && (
-          <InfoWindow position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }} onCloseClick={() => setSelectedPoint(null)}>
-            <div className="info-window">
-              <strong>Point Data</strong>
-              <p>{selectedPoint.data}</p>
-              <p>Latitude: {selectedPoint.lat}, Longitude: {selectedPoint.lng}</p>
-            </div>
-          </InfoWindow>
-        )}
+      {selectedPoint && (
+        <InfoWindow position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }} onCloseClick={() => setSelectedPoint(null)}>
+          <div className="info-window">
+            <strong>{selectedPoint.title}</strong> {/* Use dynamic title */}
+            <p>{selectedPoint.data}</p>
+            <p>Latitude: {selectedPoint.lat}, Longitude: {selectedPoint.lng}</p>
+          </div>
+        </InfoWindow>
+      )}
+
       </GoogleMap>
 
       <div className="navigation-buttons">
