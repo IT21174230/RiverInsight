@@ -36,7 +36,7 @@ export default function FloodDashboard() {
   const fetchPrediction = (date) => {
     setLoading(true);
     // Changed port to 5000 and added error handling
-    fetch(`http://localhost:5000/predict?date=${date}`, {
+    fetch(`http://localhost:5000/predict_flooding?date=${date}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

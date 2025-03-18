@@ -7,6 +7,8 @@ from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
+from utils.floodLogic import flood_prediction_logic
+
 from flask_cors import CORS
 
 # Flask constructor takes the name of current module (__name__) as argument.
@@ -150,6 +152,27 @@ def get_erosion_history():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route("/predict_flooding", methods=["GET", "OPTIONS"])
+def get_prediction():
+    # Handle the preflight OPTIONS request
+    if request.method == "OPTIONS":
+        return "", 200
+
+    # Grab date from query parameters
+    date_str = request.args.get("date")
+    if not date_str:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+    # Call the heavy-lifting logic
+    result_dict = flood_prediction_logic(date_str)
+
+    # If there's an error in the logic, result_dict will have {"error": ...}
+    if "error" in result_dict:
+        return jsonify(result_dict), 400  # or 500, up to you
+
+    return jsonify(result_dict)
 
  
 
