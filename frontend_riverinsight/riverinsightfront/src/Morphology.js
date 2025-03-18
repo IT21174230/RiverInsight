@@ -189,7 +189,10 @@ function MorphologicalPredictions() {
       
       <div className="content-wrapper">
         <div className="map-container">
-          <MapWithOverlay latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null} />
+          <MapWithOverlay 
+          latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null}
+          earliestData={tableData.length > 0 ? tableData[0] : null} 
+          />
         </div>
         {showTable && (
           <div  className="table-container">
