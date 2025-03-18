@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { GoogleMap, GroundOverlay, useJsApiLoader, InfoWindow, Marker } from "@react-google-maps/api";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import "./MapWithOverlay.css";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -27,31 +30,59 @@ const defaultOverlayPoints = [
   { lat: 7.60604673958104, lng: 79.82035478855161 },
 ];
 
-const MapWithOverlay = ({ latestData }) => {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
+const MapWithOverlay = ({ latestData, earliestData }) => {
+  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
 
   const [imageUrl, setImageUrl] = useState("");
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [overlayPoints, setOverlayPoints] = useState(defaultOverlayPoints);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
   }, []);
 
   useEffect(() => {
-    if (latestData) {
-      const updatedPoints = defaultOverlayPoints.map((point, index) => {
-        let data;
-        if (index < 2) data = `Total Shift: ${latestData.bend_1} m`;
-        else if (index < 4) data = `Total Shift: ${latestData.bend_2} m`;
-        else data = `Total Shift: ${latestData.bend_3} m`;
-        return { ...point, data };
-      });
-      setOverlayPoints(updatedPoints);
-    }
-  }, [latestData]);
+    if (!latestData || !earliestData) return;
+
+    const yearsElapsed = latestData.year - earliestData.year || 1; // Prevent division by zero
+
+    // Compute migration rates
+    const migrationRates = {
+      c1_rate: yearsElapsed !== 0 ? ((latestData.c1_dist - earliestData.c1_dist) / yearsElapsed).toFixed(4) : "N/A",
+      c2_rate: yearsElapsed !== 0 ? ((latestData.c2_dist - earliestData.c2_dist) / yearsElapsed).toFixed(4) : "N/A",
+      bend_1_rate: yearsElapsed !== 0 ? ((latestData.bend_1 - earliestData.bend_1) / yearsElapsed).toFixed(4) : "N/A",
+      c3_rate: yearsElapsed !== 0 ? ((latestData.c3_dist - earliestData.c3_dist) / yearsElapsed).toFixed(4) : "N/A",
+      c4_rate: yearsElapsed !== 0 ? ((latestData.c4_dist - earliestData.c4_dist) / yearsElapsed).toFixed(4) : "N/A",
+      bend_2_rate: yearsElapsed !== 0 ? ((latestData.bend_2 - earliestData.bend_2) / yearsElapsed).toFixed(4) : "N/A",
+      c7_rate: yearsElapsed !== 0 ? ((latestData.c7_dist - earliestData.c7_dist) / yearsElapsed).toFixed(4) : "N/A",
+      c8_rate: yearsElapsed !== 0 ? ((latestData.c8_dist - earliestData.c8_dist) / yearsElapsed).toFixed(4) : "N/A",
+      bend_3_rate: yearsElapsed !== 0 ? ((latestData.bend_3 - earliestData.bend_3) / yearsElapsed).toFixed(4) : "N/A",
+    };
+    
+
+    // Update overlay points with data
+    const updatedPoints = defaultOverlayPoints.map((point, index) => {
+      let migrationInfo = `Control Point Shift: ${migrationRates[`c${index + 1}_rate`] || "N/A"} m/year`;
+
+      // Assign corresponding bend migration rates
+      if (index < 2) migrationInfo += `\n\nBend 1 Rate: ${migrationRates.bend_1_rate} m/year`;
+      else if (index < 4) migrationInfo += `\n\nBend 2 Rate: ${migrationRates.bend_2_rate} m/year`;
+      else migrationInfo += `\nBend 3 Rate: ${migrationRates.bend_3_rate} m/year`;
+
+      return { ...point, data: migrationInfo };
+    });
+
+    setOverlayPoints(updatedPoints);
+  }, [latestData, earliestData]);
+
+  const handleNext = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 2) % overlayPoints.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prevIndex) => (prevIndex - 2 + overlayPoints.length) % overlayPoints.length);
+  };
 
   if (!isLoaded) return <div className="loading">Loading...</div>;
 
@@ -60,7 +91,7 @@ const MapWithOverlay = ({ latestData }) => {
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={17}
-        center={center}
+        center={overlayPoints[currentIndex] || center}
         mapTypeId="satellite"
         options={{
           scaleControl: true,
@@ -73,19 +104,23 @@ const MapWithOverlay = ({ latestData }) => {
       >
         {imageUrl && <GroundOverlay bounds={overlayBounds} url={imageUrl} opacity={0.8} />}
 
-        {overlayPoints.map((point, index) => (
-          <Marker
-            key={index}
-            position={{ lat: point.lat, lng: point.lng }}
-            onClick={() => setSelectedPoint(selectedPoint?.lat === point.lat && selectedPoint?.lng === point.lng ? null : point)}
-          />
-        ))}
+        {[overlayPoints[currentIndex], overlayPoints[currentIndex + 1]].map((point, index) =>
+          point ? (
+            <Marker
+              key={`${point.lat}-${point.lng}`}
+              position={{ lat: point.lat, lng: point.lng }}
+              title="Click for information"
+              onClick={() =>
+                setSelectedPoint(
+                  selectedPoint?.lat === point.lat && selectedPoint?.lng === point.lng ? null : point
+                )
+              }
+            />
+          ) : null
+        )}
 
         {selectedPoint && (
-          <InfoWindow
-            position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }}
-            onCloseClick={() => setSelectedPoint(null)}
-          >
+          <InfoWindow position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }} onCloseClick={() => setSelectedPoint(null)}>
             <div className="info-window">
               <strong>Point Data</strong>
               <p>{selectedPoint.data}</p>
@@ -94,6 +129,17 @@ const MapWithOverlay = ({ latestData }) => {
           </InfoWindow>
         )}
       </GoogleMap>
+
+      <div className="navigation-buttons">
+        <button data-tooltip-id="nav-prev" className="prev-button" onClick={handlePrev}>
+          <FaArrowLeft />
+        </button>
+        <button data-tooltip-id="nav-next" className="next-button" onClick={handleNext}>
+          <FaArrowRight />
+        </button>
+        <Tooltip id="nav-prev" content="Navigate to the previous site" />
+        <Tooltip id="nav-next" content="Navigate to the next site" />
+      </div>
     </div>
   );
 };

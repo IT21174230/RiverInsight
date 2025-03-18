@@ -173,6 +173,7 @@ button:hover {
   display: block;
   margin-bottom: 8px;
 }
+
 .dropdown-select {
   width: 100%;
   max-width: 500px;
@@ -200,11 +201,4 @@ button:hover {
 .nav-section {
   margin-bottom: 30px;
 }
-
-.dropdown-select:focus {
-  outline: none;
-  border-color: #1a6b4b; /* Green border on focus */
-  box-shadow: 0 0 0 3px rgba(26, 107, 75, 0.2); /* Green shadow on focus */
-}
-
 

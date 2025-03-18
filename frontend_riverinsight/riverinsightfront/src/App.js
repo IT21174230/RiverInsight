@@ -1,13 +1,10 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router , Routes, Route} from "react-router-dom";
+import { BrowserRouter as Router } from "react-router-dom";
 import './App.css';
- 
-import FloodDashboard from "./pages/Floodui";
- 
 import MorphologicalPredictions from "./Morphology";
 import Navigation from './Navigation';
 import RiverbankErosion from "./riverbankErosion";
- 
+import FloodDashboard from "./pages/Floodui";
 
 const App = () => {
   const [selectedOption, setSelectedOption] = useState("");
@@ -59,13 +56,11 @@ const App = () => {
 
         {/* Show selected analysis content only if dropdown is visible */}
         {showDropdown && (
-
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
-            {selectedOption === "flooding" && <p><FloodDashboard/></p>}
+            {selectedOption === "flooding" && <FloodDashboard/>}
           </div>
-
         )}
 
         <footer className="footer">
