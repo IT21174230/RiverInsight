@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { GoogleMap, GroundOverlay, useJsApiLoader, InfoWindow, Marker } from "@react-google-maps/api";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import "./MapWithOverlay.css";
+import { Tooltip } from "react-tooltip"; 
+import "react-tooltip/dist/react-tooltip.css";
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -28,13 +31,12 @@ const defaultOverlayPoints = [
 ];
 
 const MapWithOverlay = ({ latestData }) => {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
-
+  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  
   const [imageUrl, setImageUrl] = useState("");
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [overlayPoints, setOverlayPoints] = useState(defaultOverlayPoints);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     setImageUrl(window.location.origin + "/skeleton_final_1988(1).png");
@@ -53,6 +55,14 @@ const MapWithOverlay = ({ latestData }) => {
     }
   }, [latestData]);
 
+  const handleNext = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 2) % overlayPoints.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prevIndex) => (prevIndex - 2 + overlayPoints.length) % overlayPoints.length);
+  };
+
   if (!isLoaded) return <div className="loading">Loading...</div>;
 
   return (
@@ -60,7 +70,7 @@ const MapWithOverlay = ({ latestData }) => {
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={17}
-        center={center}
+        center={overlayPoints[currentIndex]}
         mapTypeId="satellite"
         options={{
           scaleControl: true,
@@ -73,19 +83,23 @@ const MapWithOverlay = ({ latestData }) => {
       >
         {imageUrl && <GroundOverlay bounds={overlayBounds} url={imageUrl} opacity={0.8} />}
 
-        {overlayPoints.map((point, index) => (
-          <Marker
-            key={index}
-            position={{ lat: point.lat, lng: point.lng }}
-            onClick={() => setSelectedPoint(selectedPoint?.lat === point.lat && selectedPoint?.lng === point.lng ? null : point)}
-          />
+        {[overlayPoints[currentIndex], overlayPoints[currentIndex + 1]].map((point, index) => (
+          point && (
+            <Marker
+              title="Click for information"
+              key={index}
+              position={{ lat: point.lat, lng: point.lng }}
+              onClick={() =>
+                setSelectedPoint(
+                  selectedPoint?.lat === point.lat && selectedPoint?.lng === point.lng ? null : point
+                )
+              }
+            />
+          )
         ))}
 
         {selectedPoint && (
-          <InfoWindow
-            position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }}
-            onCloseClick={() => setSelectedPoint(null)}
-          >
+          <InfoWindow position={{ lat: selectedPoint.lat, lng: selectedPoint.lng }} onCloseClick={() => setSelectedPoint(null)}>
             <div className="info-window">
               <strong>Point Data</strong>
               <p>{selectedPoint.data}</p>
@@ -94,6 +108,17 @@ const MapWithOverlay = ({ latestData }) => {
           </InfoWindow>
         )}
       </GoogleMap>
+
+      <div className="navigation-buttons">
+        <button data-tooltip-id="nav-prev"  className="prev-button" onClick={handlePrev}>
+          <FaArrowLeft />
+        </button>
+        <button  data-tooltip-id="nav-next"  className="next-button" onClick={handleNext}>
+          <FaArrowRight />
+        </button>
+        <Tooltip id="nav-prev" content="Navigate to the previous site" />
+        <Tooltip id="nav-next" content="navigate to the next site" />
+      </div>
     </div>
   );
 };
