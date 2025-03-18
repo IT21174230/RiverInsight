@@ -1,14 +1,13 @@
 # flood_logic.py
-
 import pandas as pd
 import numpy as np
 
 # Import your models, utilities, etc.
-from .models import (
+from models import (
     prophet_model, prophet_train, temperature_model,
     humidity_model, rainfall_model, FLOOD_THRESHOLD
 )
-from .utils_module import evaluation_metrics
+from utils import evaluation_metrics
 
 def flood_prediction_logic(date_str):
     """
@@ -122,6 +121,53 @@ def flood_prediction_logic(date_str):
         chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
         chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
 
+        # Dynamic explanation logic for explainable factor and flood effects
+        if water_area >= flood_threshold:
+            dynamic_explanation = (
+                f"The high water area of {water_area:.2f} km², combined with a forecasted rainfall of "
+                f"{predicted_rainfall if predicted_rainfall is not None else 'N/A'} mm, indicates severe flooding conditions. "
+                "This level of flooding is likely to impact areas with sparse vegetation and impervious surfaces, leading to rapid runoff."
+            )
+            dynamic_land_cover_effect = (
+                "Natural areas with low vegetation cover are prone to significant erosion and habitat loss under these conditions."
+            )
+            dynamic_land_usage_effect = (
+                "Urban and agricultural zones may suffer major disruptions due to infrastructure damage and crop losses."
+            )
+            dynamic_effect_explanation = (
+                "Severe flooding can cause long-term changes in land cover and substantial economic impacts."
+            )
+        elif water_area >= 0.8 * flood_threshold:
+            dynamic_explanation = (
+                f"The moderate water area of {water_area:.2f} km² and forecasted rainfall of "
+                f"{predicted_rainfall if predicted_rainfall is not None else 'N/A'} mm suggest potential localized flooding. "
+                "This indicates that certain low-lying or poorly drained areas may be more vulnerable."
+            )
+            dynamic_land_cover_effect = (
+                "There may be noticeable damage to vegetation and some degree of soil erosion in vulnerable areas."
+            )
+            dynamic_land_usage_effect = (
+                "Some urban or rural areas could experience localized disruptions, particularly where drainage is inadequate."
+            )
+            dynamic_effect_explanation = (
+                "Localized flooding may result in temporary land cover changes and moderate economic impacts."
+            )
+        else:
+            dynamic_explanation = (
+                f"The low water area of {water_area:.2f} km², with a forecasted rainfall of "
+                f"{predicted_rainfall if predicted_rainfall is not None else 'N/A'} mm, indicates minimal flood risk. "
+                "Under these conditions, significant flooding is unlikely, and any impact on land cover or usage is expected to be minor."
+            )
+            dynamic_land_cover_effect = (
+                "Minimal impact on vegetation and soil is anticipated."
+            )
+            dynamic_land_usage_effect = (
+                "Urban and agricultural areas are expected to remain largely unaffected."
+            )
+            dynamic_effect_explanation = (
+                "Flooding under these conditions is expected to be minor, with negligible long-term impacts."
+            )
+
         # Build the final result dictionary
         result = {
             "date": str(user_input_date.date()),
@@ -142,12 +188,12 @@ def flood_prediction_logic(date_str):
             "chart_data": chart_data,
             "evaluation_metrics": evaluation_metrics,
             "explainable_factor": {
-                "explanation": "The flood risk is driven by rising water levels and heavy rainfall."
+                "explanation": dynamic_explanation
             },
             "flood_effect": {
-                "land_cover_effect": "Significant impact on vegetation and soil erosion.",
-                "land_usage_effect": "Urban and agricultural areas may face disruption.",
-                "effect_explanation": "Flooding can result in long-term changes in land cover and economic losses."
+                "land_cover_effect": dynamic_land_cover_effect,
+                "land_usage_effect": dynamic_land_usage_effect,
+                "effect_explanation": dynamic_effect_explanation
             }
         }
 
