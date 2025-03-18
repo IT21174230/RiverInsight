@@ -38,7 +38,7 @@ export default function FloodDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/predict?date=${date}`, {
+      const res = await fetch(`http://localhost:8000/predict?date=${date}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

@@ -5,24 +5,15 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from prophet import Prophet
 
-
-
-
-# Get the directory of the current script (utils_module.py)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Path to master2.csv
-MASTER_FILE = os.path.join(BASE_DIR, "master2.csv")
-
 # Shared dictionary for training & test metrics
 evaluation_metrics = {}
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_flood_threshold_from_master():
     """
     Reads 'master2.csv' to compute the top 5% threshold for 'water_area_km2'.
     """
-    file_path = "master2.csv"
+    file_path = (os.path.join(BASE_DIR, "master2.csv"))
     if not os.path.exists(file_path):
         print(f"Warning: {file_path} not found. Using fallback threshold = 9.0.")
         return 9.0
@@ -41,10 +32,7 @@ def compute_test_metrics(model):
     """
     Reads 'master2.csv', creates features, and evaluates test performance (last 30%).
     """
-
- 
- 
-    data = pd.read_csv(MASTER_FILE)
+    data = pd.read_csv(os.path.join(BASE_DIR, "master2.csv"))
     data["date"] = pd.to_datetime(data["date"])
     data = data.sort_values(by="date")
 

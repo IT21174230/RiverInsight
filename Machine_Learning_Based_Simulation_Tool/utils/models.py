@@ -9,12 +9,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from .utils_module import compute_test_metrics, get_flood_threshold_from_master, evaluation_metrics
 
 # File constants
- 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# File constants
-MODEL_FILE = os.path.join(BASE_DIR, "prophet_model.pkl")
+MODEL_FILE = os.path.join(BASE_DIR, "prophet.pkl")
 TRAIN_FILE = os.path.join(BASE_DIR, "prophet_train.csv")
+
 
 # Global variables for use in other modules
 prophet_model = None

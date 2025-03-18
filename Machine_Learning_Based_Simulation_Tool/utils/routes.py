@@ -4,11 +4,11 @@ import numpy as np
 from flask import request, jsonify
 
 # Import from our local modules
-from models import (
+from .models import (
     prophet_model, prophet_train, temperature_model,
     humidity_model, rainfall_model, FLOOD_THRESHOLD
 )
-from utils import evaluation_metrics
+from .utils_module import evaluation_metrics
 
 
 def init_routes(app):
@@ -163,15 +163,15 @@ def init_routes(app):
 
             # Log to console
             print(f"GET /predict request for date: {user_input_date.date()}")
-            print("Training Evaluation Metrics:")
-            print(f"MAE: {evaluation_metrics.get('mae_train', None):.2f}, "
-                  f"RMSE: {evaluation_metrics.get('rmse_train', None):.2f}, "
-                  f"R²: {evaluation_metrics.get('r2_train', None):.2f}")
+            # print("Training Evaluation Metrics:")
+            # print(f"MAE: {evaluation_metrics.get('mae_train', None):.2f}, "
+            #       f"RMSE: {evaluation_metrics.get('rmse_train', None):.2f}, "
+            #       f"R²: {evaluation_metrics.get('r2_train', None):.2f}")
 
-            print("Test Evaluation Metrics:")
-            print(f"MAE: {evaluation_metrics.get('mae_test', None):.2f}, "
-                  f"RMSE: {evaluation_metrics.get('rmse_test', None):.2f}, "
-                  f"R²: {evaluation_metrics.get('r2_test', None):.2f}")
+            # print("Test Evaluation Metrics:")
+            # print(f"MAE: {evaluation_metrics.get('mae_test', None):.2f}, "
+            #       f"RMSE: {evaluation_metrics.get('rmse_test', None):.2f}, "
+            #       f"R²: {evaluation_metrics.get('r2_test', None):.2f}")
 
             return jsonify(result)
 
