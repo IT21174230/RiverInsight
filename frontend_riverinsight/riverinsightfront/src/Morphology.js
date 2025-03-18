@@ -3,7 +3,10 @@ import MapWithOverlay from "./MeanderMigration";
 import axios from "axios";
 import "./MorphologicalPredictions.css";
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';  
+import autoTable from 'jspdf-autotable'; 
+import { Tooltip } from "react-tooltip"; 
+import "react-tooltip/dist/react-tooltip.css";
+
 
 
 function MorphologicalPredictions() {
@@ -21,7 +24,6 @@ function MorphologicalPredictions() {
   const [showInfoModal, setShowInfoModal] = useState(false);
 
   useEffect(() => {
-    // Close context menu on clicking outside
     const handleClickOutside = () => setContextMenu(null);
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -123,7 +125,7 @@ function MorphologicalPredictions() {
       head: [tableHeaders],
       body: tableRows,
       startY: 20,
-      theme: 'striped', // Striped table for better readability
+      theme: 'striped', 
       headStyles: {
         fillColor: themeColor, // Header background color
         textColor: 'white', // Header text color
@@ -177,25 +179,26 @@ function MorphologicalPredictions() {
           </select>
         </label>
       </div>
-      <button onClick={fetchTableData} className="fetch-button">
+      <button data-tooltip-id="fetch-data" onClick={fetchTableData} className="fetch-button">
         {showTable ? "Hide Tabular Data" : "Show Tabular Data"}
       </button>
+      <Tooltip id="fetch-data" content="Display tabular data for the selected year and quarter" />
 
       <div className="content-wrapper">
         <div className="map-container">
           <MapWithOverlay latestData={tableData.length > 0 ? tableData[tableData.length - 1] : null} />
         </div>
         {showTable && (
-          <div className="table-container">
+          <div  className="table-container">
             <div className="table-wrapper">
               <table className="styled-table">
                 <thead>
                   <tr>
-                    <th>Year</th>
+                    <th data-tooltip-id="row-click">Year</th>
                     <th>Quarter</th>
-                    <th>Control Point 1</th>
+                    <th data-tooltip-id="control-point-1">Control Point 1</th>
                     <th>Control Point 2</th>
-                    <th>Bend 1 Deviation</th>
+                    <th data-tooltip-id="bend-1-deviation">Bend 1 Deviation</th>
                     <th>Control Point 3</th>
                     <th>Control Point 4</th>
                     <th>Bend 2 Deviation</th>
@@ -204,6 +207,9 @@ function MorphologicalPredictions() {
                     <th>Bend 3 Deviation</th>
                   </tr>
                 </thead>
+                <Tooltip id="control-point-1" content="The shift of centerline in relation to Control Point along with direction." />
+                <Tooltip id="bend-1-deviation" content="Magnitude of deviation of bend." />
+                <Tooltip id="row-click" content="Right click on any row to know how prediction is made." />
                 <tbody>
                   {(isShifted ? shiftedData : tableData).map((row, index) => (
                     <tr key={index} onContextMenu={(e) => handleRightClick(e, row, index)}>
@@ -235,17 +241,19 @@ function MorphologicalPredictions() {
                 </tbody>
               </table>
             </div>
-            <button onClick={() => setIsShifted(!isShifted)} className="fetch-button">
+            <button data-tooltip-id='toggle-shift' onClick={() => setIsShifted(!isShifted)} className="fetch-button">
               {isShifted ? "Show Total Shift (since 1988)" : "Show Shift by Year"}
             </button>
+            <Tooltip id="toggle-shift" content="Toggle between total shift since 1988 and yearly shift" />
               <div className="button-container">
-                <button onClick={() => setShowInfoModal(true)} className="info-button">
-                  Info
+                <button data-tooltip-id="info" onClick={() => setShowInfoModal(true)} className="info-button">
+                  ¡
                 </button>
-                <button onClick={saveTableAsPDF} className="save-pdf-button">
+                <Tooltip id="info" content="Learn more about how these values are calculated" />
+                <button data-tooltip-id="save-pdf" onClick={saveTableAsPDF} className="save-pdf-button">
                   Save PDF
                 </button>
-                {/* TODO: fix css */}
+                <Tooltip id="save-pdf" content="Download table as a PDF" />
               </div>
           </div>
         )}
@@ -264,7 +272,7 @@ function MorphologicalPredictions() {
                   <ul>
                     <li><strong>Control Points:</strong> The shift of centerline in relation to the control points since
                     1988 and year-wise. The direction of the centerline shift is given as either towards or away from the control points.</li>
-                    <li><strong>Bend Deviation</strong> Total magnitude of the deviation in meters.</li>
+                    <li><strong>Bend Deviation</strong> Magnitude of the deviation in meters.</li>
                   </ul>
                   <p>The process of how the distances are caculated in relation to the control points are illustrated below. [['image']]</p>
                 </div>
@@ -281,9 +289,10 @@ function MorphologicalPredictions() {
             left: `${contextMenu.x}px`,
           }}
         >
-          <button onClick={fetchInferenceImage} className="context-menu-option">
+          <button data-tooltip-id='explain-inf' onClick={fetchInferenceImage} className="context-menu-option">
             Show Inference Explanation
           </button>
+          <Tooltip id="explain-inf" content="Show how this prediction is made." />
         </div>
       )}
 

@@ -343,5 +343,23 @@
   transform: scale(1.05);
 }
 
+.info-button, .save-pdf-button {
+  background-color: #1a6b4b;
+  color: white;
+  font-size: 16px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 10px;
+  margin-right: 5px;
+}
 
+.save-pdf-button:hover {
+  background-color: #145c3d;
+  transform: scale(1.05);
+}
 
