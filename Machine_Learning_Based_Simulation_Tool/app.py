@@ -7,6 +7,7 @@ from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
+from utils.FloodLogic import load_model, flood_prediction_logic
 from flask_cors import CORS
 
 # Flask constructor takes the name of current module (__name__) as argument.
@@ -16,6 +17,10 @@ init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
 model, scaler_ts, scaler_year = load_resources()
+
+# load resources 4 flood prediction
+prophet_model, prophet_train, temp_model, hum_model, rain_model = load_model()
+
 
 def clean_up():
     IMAGE_FOLDER = r'data_dir\meander_migration_sal_maps'
@@ -150,9 +155,20 @@ def get_erosion_history():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route("/predict/flooding", methods=["GET"])
+def get_prediction():
+    date = request.args.get("date")
+    if not date:
+        return jsonify({"error": "Missing date parameter"}), 400
+
+    result = flood_prediction_logic(date, prophet_model, prophet_train, temp_model, hum_model, rain_model)
+
+    if "error" in result:
+        return jsonify(result), 400 if "format" in result["error"] else 404
+    return jsonify(result)
 
  
 
-# Start the Flask app (unchanged)
 if __name__ == '__main__':
     app.run(debug=True)
