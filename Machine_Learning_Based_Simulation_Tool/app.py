@@ -11,7 +11,7 @@ from flask_cors import CORS
 
 # Flask constructor takes the name of current module (__name__) as argument.
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3001"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
