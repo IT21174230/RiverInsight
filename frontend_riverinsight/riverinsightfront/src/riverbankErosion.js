@@ -212,7 +212,7 @@ const RiverbankErosion = () => {
   }, [map, baselinePredictions]);
 
   /* ─────────────── 5. submit ─────────────── */
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setHeatmap(null);
     setError("");
@@ -221,7 +221,6 @@ const RiverbankErosion = () => {
       return;
     }
     try {
-      /* prediction */
       const { data: pred } = await axios.post(`${API_BASE}/predict_erosion`, {
         year: +year,
         quarter: +quarter,
@@ -231,14 +230,20 @@ const RiverbankErosion = () => {
       const preds = Object.entries(pred.predictions).map(([p, v]) => ({ point: p, value: v * 0.625 }));
       setUserPredictions(preds);
 
-      /* erosion diff */
+      // Get current year and quarter predictions for baseline
+      const { year: curY, quarter: curQ } = getCurrentYQ();
+
+      // calculate erosion rate correctly
+      const yearDiff = (+year - curY) + (quarter - curQ) / 4; // Adjust for quarters
       const eros = preds.map((u) => {
         const base = baselinePredictions?.find((b) => b.point === u.point)?.value || 0;
-        return { point: u.point, value: u.value - base };
+        const erosionRate = yearDiff > 0 ? (u.value - base) * 0.325 / yearDiff : 0;
+        return { point: u.point, value: erosionRate };
       });
+
       setErosionValues(eros);
 
-      /* heat‑map */
+      // heatmap
       const { data: hm } = await axios.post(`${API_BASE}/predict_erosion/heatmap`, {
         year: +year,
         quarter: +quarter,
@@ -248,21 +253,21 @@ const RiverbankErosion = () => {
       });
       setHeatmap(hm.heatmap_png_base64);
 
-      /* history table */
-      const { year: curY, quarter: curQ } = getCurrentYQ();
-      axios
-        .post(`${API_BASE}/predict_erosion/history`, {
-          startYear: curY,
-          startQuarter: curQ,
-          endYear: +year,
-          endQuarter: +quarter,
-        })
-        .then((res) => setTableData(res.data.history || []))
-        .catch(() => {});
-    } catch (err) {
-      setError(err.response?.data?.error || "Prediction failed.");
-    }
-  };
+      // history table
+    axios
+      .post(`${API_BASE}/predict_erosion/history`, {
+        startYear: curY,
+        startQuarter: curQ,
+        endYear: +year,
+        endQuarter: +quarter,
+      })
+      .then((res) => setTableData(res.data.history || []))
+      .catch(() => {});
+  } catch (err) {
+    setError(err.response?.data?.error || "Prediction failed.");
+  }
+};
+
 
   /* ─────────────── 6. recolour markers with erosion ─────────────── */
   useEffect(() => {
