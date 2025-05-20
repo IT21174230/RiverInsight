@@ -60,7 +60,7 @@ const MeanderPredInterface = () => {
         }
       }
 
-      if (minDist <= 5) {
+      if (minDist <= 1) {
         try {
           const response = await axios.get(
             "http://127.0.0.1:5000/meander_migration/params/",
@@ -89,42 +89,71 @@ const MeanderPredInterface = () => {
     return predictionData[predictionData.length - 1];
   };
 
-  const renderPredictionInfo = () => {
-    const latest = getLatestRow();
-    if (!latest || !nearestSite) return null;
 
-    let fields = {};
-    if (nearestSite.name === 'Site 1') {
-      fields = {
-        bend_1: latest.bend_1,
-        c1_dist: latest.c1_dist,
-        c2_dist: latest.c2_dist
-      };
-    } else if (nearestSite.name === 'Site 2') {
-      fields = {
-        bend_2: latest.bend_2,
-        c3_dist: latest.c3_dist,
-        c4_dist: latest.c4_dist
-      };
-    } else if (nearestSite.name === 'Site 3') {
-      fields = {
-        bend_3: latest.bend_3,
-        c7_dist: latest.c7_dist,
-        c8_dist: latest.c8_dist
-      };
-    }
+const renderPredictionInfo = () => {
+  if (predictionData.length === 0 || !nearestSite) return null;
 
+  const selectedYearInt = parseInt(year);
+  const selectedQuarterInt = parseInt(quarter);
+
+  if (selectedYearInt < 2025) {
     return (
       <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
         <h3>Prediction for {nearestSite.name}</h3>
-        <ul>
-          {Object.entries(fields).map(([key, value]) => (
-            <li key={key}><strong>{key}:</strong> {value}</li>
-          ))}
-        </ul>
+        <p>See tabular view for historical data.</p>
       </div>
     );
-  };
+  }
+
+  const currentRow = predictionData.find(
+    row => row.year === parseInt(year) && parseInt(row.quarter) === parseInt(quarter)
+  );
+
+  const baselineRow = predictionData.find(
+    row => row.year === 2025 && parseInt(row.quarter) === 1
+  );
+
+  if (!currentRow || !baselineRow) return (
+    <p style={{ color: '#1a6b4b', marginTop: '16px' }}>
+      Prediction data not available for selected or baseline quarter.
+    </p>
+  );
+
+  const computeDiff = (field) => Math.abs(currentRow[field] - baselineRow[field]).toFixed(2);
+
+  let fields = {};
+  if (nearestSite.name === 'Site 1') {
+    fields = {
+      'Bend 1 Deviation (m)': computeDiff('bend_1'),
+      'Control Point 1 Shift (m)': computeDiff('c1_dist'),
+      'Control Point 2 Shift (m)': computeDiff('c2_dist')
+    };
+  } else if (nearestSite.name === 'Site 2') {
+    fields = {
+      'Bend 2 Deviation (m)': computeDiff('bend_2'),
+      'Control Point 3 Shift (m)': computeDiff('c3_dist'),
+      'Control Point 4 Shift (m)': computeDiff('c4_dist')
+    };
+  } else if (nearestSite.name === 'Site 3') {
+    fields = {
+      'Bend 3 Deviation (m)': computeDiff('bend_3'),
+      'Control Point 5 Shift (m)': computeDiff('c7_dist'),
+      'Control Point 6 Shift (m)': computeDiff('c8_dist')
+    };
+  }
+
+  return (
+    <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
+      <h3>Prediction for {nearestSite.name}</h3>
+      <p>Compared against baseline: Q1 2025</p>
+      <ul>
+        {Object.entries(fields).map(([label, value]) => (
+          <li key={label}><strong>{label}:</strong> {value}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
   return (
     <div className="container">
@@ -168,33 +197,37 @@ const MeanderPredInterface = () => {
 
       {!loading && nearestSite && (
       <>
-        <SiteMap
-          siteName={nearestSite.name}
-          siteLat={nearestSite.lat}
-          siteLon={nearestSite.lon}
-          userLat={parseFloat(latitude)}
-          userLon={parseFloat(longitude)}
-          year={year}
-          quarter={quarter}
-          distance={nearestSite.distance}
-        />
-        {renderPredictionInfo()}
+        <div className="content-wrapper">
+  <div className="map-container">
+    <SiteMap
+      siteName={nearestSite.name}
+      siteLat={nearestSite.lat}
+      siteLon={nearestSite.lon}
+      userLat={parseFloat(latitude)}
+      userLon={parseFloat(longitude)}
+      year={year}
+      quarter={quarter}
+      distance={nearestSite.distance}
+    />
+    </div>
+          <div className="prediction-container">
+            {renderPredictionInfo()}
+            <button
+              className="fetch-button"
+              style={{ marginTop: '16px' }}
+              onClick={() => setShowTable(prev => !prev)}
+            >
+              {showTable ? 'Hide' : 'Show'} Tabular Data
+            </button>
+          </div>
+        </div>
 
-        <button
-          className="fetch-button"
-          style={{ marginTop: '16px' }}
-          onClick={() => setShowTable(prev => !prev)}
-          >
-          {showTable ? 'Hide' : 'Show'} Tabular Data
-        </button>
+        {showTable && (
+          <div style={{ width: '90%', marginTop: '20px' }}>
+            <SiteDataTab selectedSite={nearestSite.name} year={year} quarter={quarter} />
+          </div>
+        )}
 
-          {showTable && (
-            <SiteDataTab
-              selectedSite={nearestSite.name}
-              year={year}
-              quarter={quarter}
-            />
-          )}
       </>
     )}
 

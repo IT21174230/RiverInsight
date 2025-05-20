@@ -93,16 +93,3 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
 
 export default SiteDataTab;
 
-
-// import React from 'react';
-
-// const SiteDataTab = ({ selectedSite, year, quarter }) => {
-//   return (
-//     <div style={{ marginTop: '20px', border: '1px solid #ccc', padding: '10px' }}>
-//       <h4>Data Table for {selectedSite} - {year} Q{quarter}</h4>
-//       <p>This is a placeholder for the actual data table.</p>
-//     </div>
-//   );
-// };
-
-// export default SiteDataTab;
