@@ -5,7 +5,7 @@ import shutil
 from utils.meander_migration import return_to_hp
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
-from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
+from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from utils.FloodLogic import load_model, flood_prediction_logic
 from flask_cors import CORS
@@ -71,90 +71,126 @@ def get_saliency():
 #         return jsonify(raw_df)
 
 # New route for riverbank erosion prediction
-@app.route('/predict_erosion', methods=['POST'])
-def predict():
+@app.route("/predict_erosion", methods=["POST"])
+def predict_erosion():
     try:
-        # Parse input JSON
-        data = request.get_json()
-        year = data.get('year')
-        quarter = data.get('quarter')
+        data = request.get_json(force=True)
 
-        if year is None or quarter is None:
-            return jsonify({'error': 'Missing year or quarter in the request.'}), 400
+        # required
+        year     = int(data.get("year"))
+        quarter  = int(data.get("quarter"))
+        rainfall = float(data.get("rainfall"))
+        temperature = float(data.get("temperature"))
 
-        # Prepare input features and make predictions
-        future_X = prepare_future_input(year, quarter, scaler_year)
-        predictions = make_predictions(model, scaler_ts, future_X)
+        missing = [k for k in ("year", "quarter", "rainfall", "temperature")
+                   if data.get(k) is None]
+        if missing:
+            return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
-        # Prepare response
-        return jsonify({'year': year, 'quarter': quarter, 'predictions': predictions}), 200
+        X = prepare_future_input(year, quarter, rainfall, temperature)
+        preds = make_predictions(X)
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            "year"        : year,
+            "quarter"     : quarter,
+            "rainfall"    : rainfall,
+            "temperature" : temperature,
+            "predictions" : preds
+        }), 200
 
-# Route for generating heatmap
-@app.route('/predict_erosion/heatmap', methods=['POST'])
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+@app.route("/predict_erosion/heatmap", methods=["POST"])
 def predict_heatmap():
     try:
-        # Parse input parameters from JSON body
-        request_data = request.get_json()
-        if not request_data:
-            return jsonify({'error': 'Invalid input, JSON body expected.'}), 400
+        data = request.get_json(force=True)
 
-        start_year = int(request_data['year'])
-        start_quarter = int(request_data['quarter'])
-        points = list(map(int, request_data.get('points', [])))  # Example: [1, 5, 10, 20]
-        timesteps = int(request_data.get('timesteps', 5))  # Default to 5 timesteps if not provided
+        year         = int(data["year"])
+        quarter      = int(data["quarter"])
+        rainfall     = float(data["rainfall"])
+        temperature  = float(data["temperature"])
+        points       = list(map(int, data.get("points", [])))
 
-        # Validate input
         if not points:
-            return jsonify({'error': 'Points must be a non-empty list of integers.'}), 400
+            return jsonify({"error": "points must be a non-empty list"}), 400
 
-        # Generate the heatmap
-        heatmap_image = generate_heatmap_with_timesteps(model, start_year, start_quarter, scaler_year, points, timesteps)
+        # optional delta overrides
+        delta_year    = float(data.get("delta_year",    1))
+        delta_quarter = int  (data.get("delta_quarter", 1))
+        delta_rain    = float(data.get("delta_rain",    0.05))
+        delta_temp    = float(data.get("delta_temp",    1.0))
 
-        # Return the heatmap image as a base64 string
-        return jsonify({'heatmap': heatmap_image}), 200
+        b64_png = generate_feature_sensitivity_heatmap(
+            year, quarter,
+            points=points,
+            rainfall=rainfall,
+            temperature=temperature,
+            delta_year=delta_year,
+            delta_quarter=delta_quarter,
+            delta_rain=delta_rain,
+            delta_temp=delta_temp,
+        )
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            "year"       : year,
+            "quarter"    : quarter,
+            "rainfall"   : rainfall,
+            "temperature": temperature,
+            "points"     : points,
+            "heatmap_png_base64": b64_png
+        }), 200
 
-# New route for fetching historical erosion data
-@app.route('/predict_erosion/history', methods=['POST'])
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# ------------------------------------------------------------------
+#  HISTORICAL VALUES  –  width (or erosion) for every quarter
+# ------------------------------------------------------------------
+@app.route("/predict_erosion/history", methods=["POST"])
 def get_erosion_history():
     try:
-        # Parse input JSON
-        data = request.get_json()
-        start_year = data.get('startYear', 2025)  # Default to 2025 if not provided
-        start_quarter = data.get('startQuarter', 1)  # Default to Q1 if not provided
-        end_year = data.get('endYear')
-        end_quarter = data.get('endQuarter')
+        d = request.get_json(force=True)
 
-        if end_year is None or end_quarter is None:
-            return jsonify({'error': 'Missing endYear or endQuarter in the request.'}), 400
+        start_year     = int(d.get("startYear", 2025))
+        start_quarter  = int(d.get("startQuarter", 1))
+        end_year       = int(d["endYear"])
+        end_quarter    = int(d["endQuarter"])
 
-        # Generate historical data for all points from startYear Q1 to endYear Q4
+        # use same R/T for the whole span (simplest); you could vary per year
+        rainfall       = float(d.get("rainfall",     0.35))
+        temperature    = float(d.get("temperature", 301.8))
+
+        if start_year > end_year or (
+            start_year == end_year and start_quarter > end_quarter
+        ):
+            return jsonify({"error": "start date must be ≤ end date"}), 400
+
         history_data = []
-        for year in range(start_year, end_year + 1):
-            for quarter in range(1, 5):  # Quarters 1 to 4
-                if year == end_year and quarter > end_quarter:
-                    break  # Stop if we've reached the end quarter
+        y, q = start_year, start_quarter
+        while (y < end_year) or (y == end_year and q <= end_quarter):
+            X = prepare_future_input(y, q, rainfall, temperature)
+            preds = make_predictions(X)          # {"Point_1": …, …}
 
-                future_X = prepare_future_input(year, quarter, scaler_year)
-                predictions = make_predictions(model, scaler_ts, future_X)
+            for pt, val in preds.items():
+                history_data.append({
+                    "point": pt,
+                    "year":  y,
+                    "quarter": q,
+                    "value": round(val * 0.625, 3)   # scale + nice rounding
+                })
 
-                for point, value in predictions[0].items():
-                    history_data.append({
-                        'point': point,
-                        'year': year,
-                        'quarter': quarter,
-                        'value': value * 0.625  # Scale the value by 0.625
-                    })
+            # step to next quarter
+            q += 1
+            if q > 4:
+                q = 1
+                y += 1
 
-        return jsonify({'history': history_data}), 200
+        return jsonify({"history": history_data}), 200
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
     
 @app.route("/predict/flooding", methods=["GET"])
 def get_prediction():
