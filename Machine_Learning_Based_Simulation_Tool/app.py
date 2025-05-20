@@ -15,6 +15,7 @@ from utils.riverbank_erosion import load_resources, prepare_future_input, make_p
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
 from utils.simulation_tool_xai import *
+from flask import send_from_directory
 from flask_cors import CORS
 
 # Flask constructor takes the name of 
@@ -137,8 +138,6 @@ def predict():
         rainfall = input_data.get('rainfall')
         temp = input_data.get('temp')
 
-        print('date: ', date, 'rainfall: ', rainfall, 'temp: ', temp)
-
         # Prepare input features
         future_X = prepare_future_input_simulation(date, rainfall, temp)
 
@@ -147,10 +146,11 @@ def predict():
 
         # Calculate SHAP feature importance
         feature_names = ['year', 'quarter', 'rainfall', 'temperature']
-        target_names = ['c1_dist','c2_dist','c3_dist','c4_dist','c5_dist','c6_dist','c7_dist','c8_dist'] 
+        target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
         feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
 
-        feature_importance_per_target = calculate_shap_feature_importance_per_target(
+        # Calculate SHAP feature importance per target and generate heatmap URL
+        feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
             model=simulation_model,
             data=future_X,
             feature_names=feature_names,
@@ -161,8 +161,9 @@ def predict():
         response = {
             "predictions": predictions_df.to_dict(orient='records'),
             "feature_importance": feature_importance,
-            "feature_importance_per_target": feature_importance_per_target
-
+            "feature_importance_per_target": feature_importance_per_target,
+            "heatmap_url": heatmap_url,  # Return the base64-encoded image URL
+            "centerline_coordinates": predictions_df['centerline_coordinates'].iloc[0]  # Add centerline coordinates
         }
         return jsonify(response), 200
 
@@ -173,7 +174,8 @@ def predict():
     except ValueError as e:
         return jsonify({"message": f"{e} - Request body input is invalid"}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500  
+        return jsonify({'error': str(e)}), 500
+
 
 # New route for fetching historical erosion data
 @app.route('/predict_erosion/history', methods=['POST'])
