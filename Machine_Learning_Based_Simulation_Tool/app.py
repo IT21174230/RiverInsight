@@ -8,6 +8,9 @@ from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from utils.FloodLogic import load_model, flood_prediction_logic
+from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
+from utils.simulation_tool_xai import *
+from flask import send_from_directory
 from flask_cors import CORS
 
 # Flask constructor takes the name of current module (__name__) as argument.
@@ -21,6 +24,8 @@ model, scaler_ts, scaler_year = load_resources()
 # load resources 4 flood prediction
 prophet_model, prophet_train, temp_model, hum_model, rain_model = load_model()
 
+#load model for simulation
+simulation_model, scaler_features, scaler_targets = load_resource_simulation()
 
 def clean_up():
     IMAGE_FOLDER = r'data_dir\meander_migration_sal_maps'
@@ -143,6 +148,54 @@ def predict_heatmap():
 
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
+    
+# New route for simulation tool prediction
+@app.route('/predict_simulation_tool', methods=['POST'])
+def predict():
+    try:
+        # Parse input data
+        input_data = request.get_json()
+        date = input_data.get('date')
+        rainfall = input_data.get('rainfall')
+        temp = input_data.get('temp')
+
+        # Prepare input features
+        future_X = prepare_future_input_simulation(date, rainfall, temp)
+
+        # Make predictions
+        predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
+
+        # Calculate SHAP feature importance
+        feature_names = ['year', 'quarter', 'rainfall', 'temperature']
+        target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
+        feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
+
+        # Calculate SHAP feature importance per target and generate heatmap URL
+        feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
+            model=simulation_model,
+            data=future_X,
+            feature_names=feature_names,
+            target_names=target_names
+        )
+
+        # Prepare response
+        response = {
+            "predictions": predictions_df.to_dict(orient='records'),
+            "feature_importance": feature_importance,
+            "feature_importance_per_target": feature_importance_per_target,
+            "heatmap_url": heatmap_url,  # Return the base64-encoded image URL
+            "centerline_coordinates": predictions_df['centerline_coordinates'].iloc[0]  # Add centerline coordinates
+        }
+        return jsonify(response), 200
+
+    except HTTPException:
+        return jsonify({"message": "Unsupported Media Type: Send request as encoded JSON"}), 415
+    except KeyError as e:
+        return jsonify({"message": f"{e} - Key not found in request body"}), 404
+    except ValueError as e:
+        return jsonify({"message": f"{e} - Request body input is invalid"}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ------------------------------------------------------------------
