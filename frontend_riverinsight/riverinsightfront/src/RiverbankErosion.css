@@ -236,12 +236,13 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 5px;
-  width: 150px; /* Set a fixed width for the dropdown */
+  width: 170px; /* Set a fixed width for the dropdown */
   text-align: left;
   cursor: pointer;
   font-size: 10px;
   max-height: 50px;
   color: white; /* Ensure text is visible */
+  font-size: 0.875rem; 
 }
 
 /* Dropdown content (hidden by default) */
@@ -292,13 +293,16 @@
 .dropdown-button-container {
   display: flex;
   align-items: center; /* Align dropdown and button vertically */
-  margin-bottom: 10px; /* Add space below the container */
+  margin-bottom: 0px; /* Add space below the container */
+  margin-right: 10px;
 }
 
 /* Selected points display */
 .selected-numbers {
-  margin-top: 10px; /* Add space above the selected points */
+  margin-top: -17px; /* Add space above the selected points */
   font-size: 14px;
+  margin-right: 10px;
+  font-size: 0.875rem; 
 }
 
 
