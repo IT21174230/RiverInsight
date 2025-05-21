@@ -71,7 +71,7 @@ const MeanderPredInterface = () => {
           );
           setPredictionData(response.data);
           setNearestSite(closestSite);
-          setMessage(`${closestSite.name} is the nearest site (~${minDist.toFixed(2)} km away).`);
+          setMessage(`${closestSite.name} is the nearest site (~${minDist.toFixed(4)} km away).`);
         } catch (error) {
           setMessage('Error fetching prediction data.');
           console.error("Error fetching data:", error.response?.data || error.message)
@@ -99,7 +99,7 @@ const renderPredictionInfo = () => {
   if (selectedYearInt < 2025) {
     return (
       <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
-        <h3>Prediction for {nearestSite.name}</h3>
+        <h3>Deviation of {nearestSite.name} In Relation to 2025 Data</h3>
         <p>See tabular view for historical data.</p>
       </div>
     );
@@ -119,7 +119,7 @@ const renderPredictionInfo = () => {
     </p>
   );
 
-  const computeDiff = (field) => Math.abs(currentRow[field] - baselineRow[field]).toFixed(2);
+  const computeDiff = (field) => Math.abs(currentRow[field] - baselineRow[field]).toFixed(4);
 
   let fields = {};
   if (nearestSite.name === 'Site 1') {
