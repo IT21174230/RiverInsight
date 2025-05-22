@@ -109,8 +109,12 @@ const renderPredictionInfo = () => {
     row => row.year === parseInt(year) && parseInt(row.quarter) === parseInt(quarter)
   );
 
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const currentQuarter = Math.floor(month / 3) + 1;
   const baselineRow = predictionData.find(
-    row => row.year === 2025 && parseInt(row.quarter) === 1
+    row => row.year === currentYear && parseInt(row.quarter) === currentQuarter
   );
 
   if (!currentRow || !baselineRow) return (
@@ -145,7 +149,7 @@ const renderPredictionInfo = () => {
   return (
     <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
       <h3>Prediction for {nearestSite.name}</h3>
-      <p>Compared against baseline: Q1 2025</p>
+      <p>Compared against baseline: {currentYear} Quarter {currentQuarter}</p>
       <ul>
         {Object.entries(fields).map(([label, value]) => (
           <li key={label}><strong>{label}:</strong> {value}</li>

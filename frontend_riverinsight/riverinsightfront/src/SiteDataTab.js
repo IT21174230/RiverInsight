@@ -75,7 +75,9 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
   const isControlPoint = (key) => key.startsWith('c');
 
   if (showTotalShift) {
-    const baseYear = year >= 2025 ? 2025 : 1988;
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const baseYear = year >= 2025 ? currentYear : 1988;
     const baseRow = data.find(d => d.year === baseYear && d.quarter === 1);
     if (!baseRow) return [];
 
@@ -91,8 +93,8 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
             ? (shift < 0 ? 'away' : 'towards')
             : '';
           shiftedRow[col.key] = isControlPoint(col.key)
-            ? `${noisy} ±0.65 (${direction})`
-            : `${noisy} ±0.65`;
+            ? `${noisy} ±0.625 (${direction})`
+            : `${noisy} ±0.625`;
         }
       });
       return shiftedRow;
@@ -105,8 +107,8 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
           shiftedRow[col.key] = row[col.key];
         } else if (i === 0) {
           shiftedRow[col.key] = isControlPoint(col.key)
-            ? `0.00 ±0.65 (towards)`
-            : `0.00 ±0.65`;
+            ? `0.00 ±0.625 (towards)`
+            : `0.00 ±0.625`;
         } else {
           const shift = parseFloat(row[col.key]) - parseFloat(data[i - 1][col.key]);
           const noisy = (shift + getRandomError()).toFixed(4);
