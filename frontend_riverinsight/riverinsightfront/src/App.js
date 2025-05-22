@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import "./App.css";
 import MorphologicalPredictions from "./Morphology";
+import MeanderPredInterface from "./MeanderMig";
 import Navigation from "./Navigation";
 import RiverbankErosion from "./riverbankErosion";
 import FloodDashboard from "./pages/Floodui";
@@ -72,7 +73,7 @@ const App = () => {
 
         {showDropdown && (
           <div className="analysis-content full-width" ref={analysisRef}>
-            {selectedOption === "meander-migration" && <MorphologicalPredictions />}
+            {selectedOption === "meander-migration" && <MeanderPredInterface/>}
             {selectedOption === "erosion" && <RiverbankErosion />}
             {selectedOption === "flooding" && <FloodDashboard />}
           </div>
