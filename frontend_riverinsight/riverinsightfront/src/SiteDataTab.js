@@ -148,6 +148,23 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
 
   return (
     <div ref={tableRef} className="mt-4">
+      <div className="button-row">
+        <button
+          className="toggle-button"
+          onClick={() => setShowTotalShift(!showTotalShift)}
+        >
+          {showTotalShift ? 'Show Shift by Year' : 'Show Total Shift'}
+        </button>
+        <button className="export-btn" onClick={handleExportCSV}>
+          Export as CSV
+        </button>
+        <button
+          className="info-button"
+          onClick={() => setShowInfoModal(true)}
+        >
+          ℹ️ Info
+        </button>
+      </div>
       <table className="styled-table">
         <thead>
           <tr>
@@ -192,24 +209,6 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
         </tbody>
 
       </table>
-
-      <div className="button-row">
-        <button
-          className="toggle-button"
-          onClick={() => setShowTotalShift(!showTotalShift)}
-        >
-          {showTotalShift ? 'Show Shift by Year' : 'Show Total Shift'}
-        </button>
-        <button className="export-btn" onClick={handleExportCSV}>
-          Export as CSV
-        </button>
-        <button
-          className="info-button"
-          onClick={() => setShowInfoModal(true)}
-        >
-          ℹ️ Info
-        </button>
-      </div>
 
       {showInfoModal && (
         
