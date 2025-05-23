@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SiteMap from './SiteMap';
 import SiteDataTab from './SiteDataTab.js';
+import MapSelectorOverlay from './MapSelectorOverlay.js';
 import './MorphologicalPredictions.css';
 import axios from 'axios';
 
@@ -32,6 +33,7 @@ const MeanderPredInterface = () => {
   const [loading, setLoading] = useState(false);
   const [predictionData, setPredictionData] = useState([]);
   const [showTable, setShowTable] = useState(false);
+  const [showMapSelector, setShowMapSelector] = useState(false);
 
   const handlePredict = async () => {
     const lat = parseFloat(latitude);
@@ -84,11 +86,15 @@ const MeanderPredInterface = () => {
     }, 800);
   };
 
-  const getLatestRow = () => {
+const getLatestRow = () => {
     if (predictionData.length === 0) return null;
     return predictionData[predictionData.length - 1];
-  };
+};
 
+const handleMapSelect = (lat, lon) => {
+  setLatitude(lat.toFixed(6));
+  setLongitude(lon.toFixed(6));
+};
 
 const renderPredictionInfo = () => {
   if (predictionData.length === 0 || !nearestSite) return null;
@@ -119,7 +125,7 @@ const renderPredictionInfo = () => {
 
   if (!currentRow || !baselineRow) return (
     <p style={{ color: '#1a6b4b', marginTop: '16px' }}>
-      Prediction data not available for selected or baseline quarter.
+      Please predict ahead of current year and quarter. See tabular data to check for shift since 1988.
     </p>
   );
 
@@ -163,14 +169,38 @@ const renderPredictionInfo = () => {
     <div className="container">
       <h1 className="title">Meander Migration Predictor</h1>
       <div className="input-container">
-        <label className="input-label">
-          Latitude:
-          <input className="input-field" type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="e.g. 7.60" />
-        </label>
-        <label className="input-label">
-          Longitude:
-          <input className="input-field" type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="e.g. 79.81" />
-        </label>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <label className="input-label">
+            Latitude:
+            <input
+              className="input-field"
+              type="number"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="e.g. 7.60"
+            />
+          </label>
+          <label className="input-label">
+            Longitude:
+            <input
+              className="input-field"
+              type="number"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="e.g. 79.81"
+            />
+          </label>
+        </div>
+
+        <div className="map-link-container">
+          <span
+            className="map-link"
+            onClick={() => setShowMapSelector(true)}
+          >
+            🗺️ Select location from map
+          </span>
+        </div>
+
         <label className="input-label">
           Year:
           <select className="input-field" value={year} onChange={(e) => setYear(e.target.value)}>
@@ -179,6 +209,7 @@ const renderPredictionInfo = () => {
             ))}
           </select>
         </label>
+
         <label className="input-label">
           Quarter:
           <select className="input-field" value={quarter} onChange={(e) => setQuarter(parseInt(e.target.value))}>
@@ -189,7 +220,15 @@ const renderPredictionInfo = () => {
           </select>
         </label>
       </div>
+
       <button className="fetch-button" onClick={handlePredict}>Predict</button>
+
+      {showMapSelector && (
+        <MapSelectorOverlay
+          onSelect={handleMapSelect}
+          onClose={() => setShowMapSelector(false)}
+        />
+      )}
 
       {loading && (
         <div style={{ marginTop: '16px', color: '#1a6b4b' }}>

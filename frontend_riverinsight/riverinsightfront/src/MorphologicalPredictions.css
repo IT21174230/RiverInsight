@@ -152,3 +152,22 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* map selector link */
+.map-link-container {
+  margin: 4px 0 12px 0;
+}
+
+.map-link {
+  font-size: 0.9rem;
+  color: #1a6b4b;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.map-link:hover {
+  opacity: 1;
+  text-decoration: none;
+}

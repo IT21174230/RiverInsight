@@ -78,7 +78,9 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const baseYear = year >= 2025 ? currentYear : 1988;
-    const baseRow = data.find(d => d.year === baseYear && d.quarter === 1);
+    const month = currentDate.getMonth();
+    const currentQuarter = Math.floor(month / 3) + 1;
+    const baseRow = data.find(d => d.year === baseYear && d.quarter === currentQuarter);
     if (!baseRow) return [];
 
     return data.map(row => {
@@ -150,23 +152,24 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
 
   return (
     <div ref={tableRef} className="mt-4">
-      <div className="button-row">
-        <button
-          className="toggle-button"
-          onClick={() => setShowTotalShift(!showTotalShift)}
-        >
-          {showTotalShift ? 'Show Shift by Year' : 'Show Total Shift'}
-        </button>
-        <button className="export-btn" onClick={handleExportCSV}>
-          Export as CSV
-        </button>
-        <button
-          className="info-button"
-          onClick={() => setShowInfoModal(true)}
-        >
-          ℹ️ Info
-        </button>
+      <div className="button-row-container">
+        <div className="button-group left-group">
+          <button className="action-btn">Predict Erosion</button>
+          <button className="action-btn">Predict Flood</button>
+        </div>
+        <div className="button-group right-group">
+          <button className="toggle-button" onClick={() => setShowTotalShift(!showTotalShift)}>
+            {showTotalShift ? 'Show Shift by Year' : 'Show Total Shift'}
+          </button>
+          <button className="export-btn" onClick={handleExportCSV}>
+            Export as CSV
+          </button>
+          <button className="info-button" onClick={() => setShowInfoModal(true)}>
+            ℹ️ Info
+          </button>
+        </div>
       </div>
+
       <table className="styled-table">
         <thead>
           <tr>

@@ -242,6 +242,54 @@ const RiverbankErosion = () => {
             timezone: "auto",
           },
         });
+
+  
+        if (response.status === 200) {
+          const predictionData = response.data.predictions[0];
+          const predictionsArray = Object.entries(predictionData).map(
+            ([point, value]) => ({ point, value: value * 0.625 }) // Scale width values
+          );
+          setBaselinePredictions(predictionsArray);
+  
+          // Set user predictions to baseline predictions by default
+          setUserPredictions(predictionsArray);
+  
+          // Set erosion values to 0 for the baseline period (current year and quarter)
+          const erosionArray = predictionsArray.map((userPred) => ({
+            point: userPred.point,
+            value: 0, // Erosion is 0 for the baseline period
+          }));
+          setErosionValues(erosionArray);
+  
+          // Fetch heatmap for default points (1,2,3,4,5) and timesteps (5)
+          const heatmapResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/heatmap", {
+            year,
+            quarter,
+            points: [1, 2, 3, 4, 5],
+            timesteps: 5,
+          });
+
+          
+  
+          if (heatmapResponse.data && heatmapResponse.data.heatmap) {
+            setHeatmap(heatmapResponse.data.heatmap);
+          }
+  
+          // Fetch historical data for the table
+          const historyResponse = await axios.post("http://127.0.0.1:5000/predict_erosion/history", {
+            startYear: year,
+            startQuarter: quarter,
+            endYear: year,
+            endQuarter: quarter,
+          });
+  
+          if (historyResponse.status === 200) {
+            setTableData(historyResponse.data.history);
+          }
+        }
+      } catch (err) {
+        setError("Failed to fetch baseline predictions.");
+
         const temps = data.daily.temperature_2m_mean;
         const rains = data.daily.precipitation_sum;
         setTemperature(
@@ -252,6 +300,7 @@ const RiverbankErosion = () => {
         );
       } catch {
         setError("Failed to fetch weather data.");
+
       }
       setLoadingWeather(false);
     };
