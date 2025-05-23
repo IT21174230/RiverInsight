@@ -12,13 +12,13 @@ import joblib
 # with open('Machine_Learning_Based_Simulation_Tool/model/riverinsight_simulation_model.pkl', 'rb') as f:
 #     model = pkl.load(f)
 
-MODEL_PATH = r'Machine_Learning_Based_Simulation_Tool\model\riverinsight_simulation_ML_model.pkl'
+MODEL_PATH = r'model\riverinsight_simulation_ML_model.pkl'
 
-SCALER_FEATURES_PATH = r'Machine_Learning_Based_Simulation_Tool\data_dir\scaler_rain_temp_simulation.pkl'
-SCALER_TARGETS_PATH = r'Machine_Learning_Based_Simulation_Tool\data_dir\scaler_targets_simulation.pkl'
+SCALER_FEATURES_PATH = r'data_dir\scaler_rain_temp_simulation.pkl'
+SCALER_TARGETS_PATH = r'data_dir\scaler_targets_simulation.pkl'
 
-latitudes=r'Machine_Learning_Based_Simulation_Tool\data_dir\y_coords_7.5m.npy'
-longitudes=r'Machine_Learning_Based_Simulation_Tool\data_dir\x_coords_7.5m.npy'
+latitudes=r'data_dir\y_coords_7.5m.npy'
+longitudes=r'data_dir\x_coords_7.5m.npy'
 
 latitudes=np.load(latitudes)
 longitudes=np.load(longitudes)
