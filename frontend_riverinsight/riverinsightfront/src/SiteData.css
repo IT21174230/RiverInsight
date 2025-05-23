@@ -56,6 +56,35 @@
   background-color: #14583c;
 }
 
+.button-row-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.left-group .action-btn {
+  background-color: #1a6b4b;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.left-group .action-btn:hover {
+  background-color: #145c40;
+}
+
+
 /* Overlay background */
 .modal {
   position: fixed;
