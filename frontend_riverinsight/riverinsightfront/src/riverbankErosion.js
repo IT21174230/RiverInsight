@@ -196,6 +196,8 @@ const RiverbankErosion = () => {
             points: [1, 2, 3, 4, 5],
             timesteps: 5,
           });
+
+          
   
           if (heatmapResponse.data && heatmapResponse.data.heatmap) {
             setHeatmap(heatmapResponse.data.heatmap);
