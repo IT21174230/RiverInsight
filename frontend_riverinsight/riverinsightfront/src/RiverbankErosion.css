@@ -76,6 +76,7 @@
   font-weight: bold;
   text-transform: uppercase;
   margin-top: 10px;
+  margin-right: 10px;
 }
 
 .submit-button:hover {
@@ -92,15 +93,8 @@
 .split-screen-container {
   display: flex;
   width: 100%;
-  height: 550px; 
-  gap: 20px; /* Space between map and heatmap */
-}
-
-/* Split-screen layout */
-.split-screen-container {
-  display: flex;
-  width: 100%;
-  height: 600px; 
+  height: 100%;
+  height: 620px; 
   gap: 20px; /* Space between map and heatmap */
 }
 
@@ -326,4 +320,244 @@
   margin-bottom: 40px;
   transition: 0.3s ease-in-out;
 
+}
+
+.heatmap-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.heatmap-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.heatmap-header p {
+  margin: 4px 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+
+/* existing primary accent */
+.submit-button-2,
+.mui-download-btn,
+.mui-close-btn {
+  background-color: #1a6b4b !important;   /* leaf-green */
+  color: #ffffff !important;
+  text-transform: none;                   /* keep normal case */
+  box-shadow: none;                       /* remove MUI default */
+}
+
+/* darker shade on hover / focus */
+.submit-button-2:hover,
+.mui-download-btn:hover,
+.mui-close-btn:hover,
+.mui-download-btn.Mui-focusVisible,
+.mui-close-btn.Mui-focusVisible {
+  background-color: #155c41 !important;   /* slightly darker */
+  color: #e6f5ed !important;              /* soft mint text */
+}
+
+/* OPTIONAL: subtle outline on keyboard focus */
+.mui-download-btn.Mui-focusVisible,
+.mui-close-btn.Mui-focusVisible {
+  outline: 3px solid #69c1a1;
+  outline-offset: 2px;
+}
+
+/* Modern XAI Heatmap Styles */
+.xai-module {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 248, 250, 0.95) 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(26, 107, 75, 0.1);
+  padding: 24px;
+  height: 95%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(26, 107, 75, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.xai-header {
+  margin-bottom: 20px;
+}
+
+.xai-title-container {
+  display: flex;
+  align-items: center !important;
+  margin-left: 100px;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.xai-icon {
+  width: 28px;
+  height: 28px;
+  color: #1a6b4b;
+}
+
+.xai-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xai-title-text {
+  background: linear-gradient(90deg, #1a6b4b 0%, #3a7bd5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.xai-beta {
+  background: linear-gradient(135deg, #ff8a00 0%, #e52e71 100%);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.xai-description-container {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.xai-description {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.xai-highlight {
+  color: #1a6b4b;
+  font-weight: 600;
+}
+
+.xai-emphasis {
+  color: #3a7bd5;
+  font-style: italic;
+}
+
+.xai-underline {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(26, 107, 75, 0.3) 50%, transparent 100%);
+  margin-top: 8px;
+}
+
+.xai-visualization {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.xai-frame {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(26, 107, 75, 0.2);
+  position: relative;
+  width: 100%;
+  height: 80%;
+  max-height: 150px;
+  background: white;
+}
+
+.xai-heatmap-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.xai-frame:hover .xai-heatmap-image {
+  transform: scale(1.02);
+}
+
+.xai-overlay {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.xai-legend {
+  display: flex;
+  gap: 12px;
+}
+
+.xai-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.xai-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.xai-legend-color.low {
+  background: #4CAF50;
+}
+
+.xai-legend-color.medium {
+  background: #FFC107;
+}
+
+.xai-legend-color.high {
+  background: #F44336;
+}
+
+.xai-controls {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.xai-timestep-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xai-timestep-control label {
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.xai-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(26, 107, 75, 0.3);
+  background: white;
+  font-size: 0.9rem;
+  color: #1a6b4b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.xai-select:hover {
+  border-color: #1a6b4b;
+}
+
+.xai-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(26, 107, 75, 0.2);
 }

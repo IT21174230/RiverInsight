@@ -68,7 +68,7 @@ def generate_heatmap_with_timesteps(model, start_year, start_quarter, scaler_yea
 
     # Plot the heatmap
     plt.figure(figsize=(8, 6))
-    sns.heatmap(heatmap_data.T, annot=False, cmap="YlGnBu", cbar_kws={'label': 'Predicted River Width'})
+    sns.heatmap(heatmap_data.T, annot=False, cmap="YlGnBu", cbar_kws={'label': ''})
     plt.title(f"Predictions for Last {len(heatmap_data)} Timesteps")
     plt.ylabel("River Points")
     plt.xlabel("Time (Year-Quarter)")

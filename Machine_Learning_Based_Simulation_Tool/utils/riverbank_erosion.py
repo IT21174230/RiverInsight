@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import joblib
 from tensorflow.keras.models import load_model
-
+from keras.losses import MeanSquaredError
 # ────────────────────────────────────────────────────────────────────
 # 1.  Paths & globals
 # ────────────────────────────────────────────────────────────────────
@@ -14,6 +14,10 @@ from tensorflow.keras.models import load_model
 MODEL_PATH = r'model\riverwidth_nn.h5'
 BUNDLE_PATH = r'data_dir\preprocessors.pkl'
 
+# Paths to resources
+MODEL_PATH_1 = r'model\erosion_neural_network_model.h5'
+SCALER_TS_PATH = r'data_dir\erosion_scaler_ts.pkl'
+SCALER_YEAR_PATH = r'data_dir\scaler_year.pkl'
 TARGETS = [f"Point_{i}" for i in range(1, 26)]  # 25 outputs
 
 
@@ -40,6 +44,9 @@ def _force_scaler(obj, name=""):
 
 # ── load everything ──────────────────────────────────────────────
 def load_resources():
+    model_1 = load_model(MODEL_PATH_1, custom_objects={'mse': MeanSquaredError()})
+    scaler_ts = joblib.load(SCALER_TS_PATH)
+    scaler_year = joblib.load(SCALER_YEAR_PATH)
     model  = load_model(MODEL_PATH, compile=False)
     bundle = joblib.load(BUNDLE_PATH)
 
@@ -66,9 +73,9 @@ def load_resources():
     scalers = dict(y=scaler_y, year=scaler_year,
                    rain=scaler_rain, temp=scaler_temp)
 
-    return model, scalers, feature_cols
+    return model, scalers, feature_cols,model_1, scaler_ts, scaler_year
 
-MODEL, SCALERS, FEATURE_COLS = load_resources()   # load once at import
+MODEL, SCALERS, FEATURE_COLS,MODEL_1, SCALER_TS, SCALER_YEAR = load_resources()   # load once at import
 
 
 # ────────────────────────────────────────────────────────────────────

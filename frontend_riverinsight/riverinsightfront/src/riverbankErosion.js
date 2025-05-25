@@ -12,6 +12,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from "@mui/material";
 import axios from "axios";
 import html2canvas from "html2canvas";
@@ -43,6 +44,8 @@ const RiverbankErosion = () => {
   const [rainfall, setRainfall] = useState(null);
   const [temperature, setTemperature] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+
+  const [timesteps, setTimesteps] = useState(5); // default 5 timesteps
 
   /* state */
   const [baselinePredictions, setBaselinePredictions] = useState(null);
@@ -268,8 +271,8 @@ const RiverbankErosion = () => {
         const { data } = await axios.post(`${API_BASE}/predict_erosion`, {
           year: curY,
           quarter: curQ,
-          rainfall,
-          temperature,
+          rainfall: +rainfall / 1000,
+          temperature: +temperature,
         });
         const arr = Object.entries(data.predictions).map(([p, v]) => ({
           point: p,
@@ -288,22 +291,29 @@ const RiverbankErosion = () => {
   /* draw reference markers (baseline or recoloured) */
   const drawMarkers = (vals, colourFn) => {
     if (!markerLayer || !vals) return;
-    markerLayer.clearLayers();
+
+    // show either the 6 closest points or the default first 6
     const show =
       userLat && userLng ? closestPoints : pointCoordinates.slice(0, 6);
 
+    markerLayer.clearLayers();
+
     show.forEach((pt) => {
       const v = vals.find((x) => x.point === pt.id)?.value ?? 0;
-      const icon = colourFn ? colourFn(v) : defaultIcon;
+      const vAbs = Math.abs(v);
+
+      const icon = colourFn ? colourFn(vAbs) : defaultIcon;
+
       L.marker([pt.lat, pt.lng], { icon })
         .addTo(markerLayer)
         .bindPopup(
           colourFn
-            ? `<b>${pt.id}</b><br>Erosion ≈ ${v.toFixed(2)} m/yr`
-            : `${pt.id}<br>${v.toFixed(2)} m`
+            ? `<b>${pt.id}</b><br>Erosion ≈ ${vAbs.toFixed(2)} m/yr`
+            : `${pt.id}<br>${vAbs.toFixed(2)} m`
         );
     });
   };
+
 
   /* baseline draw */
   useEffect(() => {
@@ -312,6 +322,29 @@ const RiverbankErosion = () => {
       null // default colour
     );
   }, [markerLayer, baselinePredictions, closestPoints]);
+
+
+  useEffect(() => {
+    const updateHeatmap = async () => {
+      if (!erosionValues || closestPoints.length === 0) return;
+      try {
+        const selectedPoints = closestPoints.map((p) => parseInt(p.id.split("_")[1]));
+        const { data } = await axios.post(`${API_BASE}/predict_erosion/heatmap`, {
+          year: +year,
+          quarter: +quarter,
+          points: selectedPoints,
+          rainfall: +rainfall,
+          temperature: +temperature,
+        });
+        setHeatmap(data.heatmap_png_base64);
+      } catch {
+        setError("Failed to update heatmap.");
+      }
+    };
+
+    updateHeatmap();
+  }, [closestPoints, erosionValues, year, quarter, rainfall, temperature]);
+
 
   /* 5. Predict submit */
   const handleSubmit = async (e) => {
@@ -323,53 +356,56 @@ const RiverbankErosion = () => {
       setError("Weather data not ready.");
       return;
     }
+
     try {
-      const { data: p } = await axios.post(`${API_BASE}/predict_erosion`, {
+      const { data } = await axios.post(`${API_BASE}/predict_erosion`, {
         year: +year,
         quarter: +quarter,
-        rainfall: +rainfall,
+        rainfall: +rainfall / 1000,
         temperature: +temperature,
       });
-      const preds = Object.entries(p.predictions).map(([pt, v]) => ({
+
+      const preds = Object.entries(data.predictions).map(([pt, v]) => ({
         point: pt,
         value: v * 0.625,
       }));
 
       const { year: curY, quarter: curQ } = getCurrentYQ();
       const yearDiff = +year - curY + (quarter - curQ) / 4;
-      const eros = preds.map((u) => {
+
+      let eros = preds.map((u) => {
         const base =
           baselinePredictions.find((b) => b.point === u.point)?.value || 0;
+        const raw = yearDiff > 0 ? ((u.value - base) / yearDiff) : 0;
         return {
           point: u.point,
-          value: yearDiff > 0 ? (u.value - base) * 0.325 / yearDiff : 0,
+          value: raw,
         };
       });
+
+      // Scale if any value exceeds 4
+      const maxVal = Math.max(...eros.map((e) => e.value));
+      if (maxVal > 4) {
+        eros = eros.map((e) => ({
+          ...e,
+          value: e.value * (4 / maxVal),
+        }));
+      }
+
       setErosionValues(eros);
 
-      /* heat-map call */
-      const { data: hm } = await axios.post(
-        `${API_BASE}/predict_erosion/heatmap`,
-        {
-          year: +year,
-          quarter: +quarter,
-          points: points.split(",").map(Number),
-          rainfall: +rainfall,
-          temperature: +temperature,
-        }
-      );
-      setHeatmap(hm.heatmap_png_base64);
 
-      /* history table */
       axios
         .post(`${API_BASE}/predict_erosion/history`, {
           startYear: curY,
           startQuarter: curQ,
           endYear: +year,
           endQuarter: +quarter,
+          rainfall: 0.35,
+          temperature: 301.8,
         })
         .then((r) => setTableData(r.data.history || []))
-        .catch(() => {});
+        .catch(() => { });
     } catch (err) {
       setError(err.response?.data?.error || "Prediction failed.");
     }
@@ -396,21 +432,67 @@ const RiverbankErosion = () => {
   const downloadPDF = () => {
     const el = document.querySelector(".scrollable-dialog-content table");
     if (!el) return;
+
     html2canvas(el).then((canvas) => {
       const img = canvas.toDataURL("image/png");
       const doc = new jsPDF("landscape");
-      doc.text("Future River Width Values", 14, 22);
-      doc.addImage(
-        img,
-        "PNG",
-        10,
-        30,
-        280,
-        (canvas.height * 280) / canvas.width
-      );
-      doc.save("Future_River_Width_Values.pdf");
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Title - Centered
+      const title = "Riverbank Erosion Forecast Report";
+      doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
+      const titleWidth = doc.getTextWidth(title);
+      doc.text(title, (pageWidth - titleWidth) / 2, 20);
+
+      // Subtitle - Centered
+      const subtitle = "Predicted Future River Widths and Reference Point Coordinates";
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      const subtitleWidth = doc.getTextWidth(subtitle);
+      doc.text(subtitle, (pageWidth - subtitleWidth) / 2, 28);
+
+      // Table image
+      const imgWidth = 270;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      doc.addImage(img, "PNG", 14, 34, imgWidth, imgHeight);
+
+      // Divider
+      const sectionStart = 34 + imgHeight + 10;
+      doc.setDrawColor(180);
+      doc.line(14, sectionStart, pageWidth - 14, sectionStart);
+
+      // Coordinates heading
+      doc.setFontSize(14);
+      doc.setTextColor(33, 33, 33);
+      doc.text("Reference Point Coordinates (Displayed 6 Points)", 14, sectionStart + 10);
+
+      // Coordinates list
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      let offsetY = sectionStart + 18;
+      closestPoints.forEach((pt, idx) => {
+        doc.text(
+          `${idx + 1}. ${pt.id.replace("_", " ")}  →  Latitude: ${pt.lat.toFixed(
+            5
+          )}, Longitude: ${pt.lng.toFixed(5)}`,
+          18,
+          offsetY + idx * 6
+        );
+      });
+
+      // Footer note
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text("Note: Erosion values are model predictions based on climate data.", 14, 205);
+
+      // Save
+      doc.save("Riverbank_Erosion_Report.pdf");
     });
   };
+
+
+
 
   /* point checkbox */
   const handleCheckboxChange = (n) => {
@@ -448,8 +530,8 @@ const RiverbankErosion = () => {
                   lbl === "Latitude"
                     ? "e.g. 7.60589"
                     : lbl === "Longitude"
-                    ? "e.g. 79.81261"
-                    : ""
+                      ? "e.g. 79.81261"
+                      : ""
                 }
               />
             </div>
@@ -458,38 +540,49 @@ const RiverbankErosion = () => {
 
         <div className="form-row">
           {loadingWeather ? (
-            <div className="weather-loading">
-              <CircularProgress size={20} />
-              &nbsp;Fetching quarter-mean weather…
-            </div>
+            <Tooltip title="Fetching CMIP-6 quarter-mean climate values…" arrow>
+              <div className="weather-loading">
+                <CircularProgress size={20} />
+                &nbsp;Fetching quarter-mean weather…
+              </div>
+            </Tooltip>
           ) : (
             <>
               <div className="form-group">
-                <label>Mean Rainfall (mm):</label>
+                <Tooltip title="Average daily rainfall for the chosen quarter" arrow>
+                  <label>Mean Rainfall (mm):</label>
+                </Tooltip>
                 <input type="number" value={rainfall ?? ""} disabled />
               </div>
               <div className="form-group">
-                <label>Mean Temperature (K):</label>
+                <Tooltip title="Average daily temperature for the chosen quarter (Kelvin)" arrow>
+                  <label>Mean Temperature (K):</label>
+                </Tooltip>
                 <input type="number" value={temperature ?? ""} disabled />
               </div>
             </>
           )}
         </div>
 
-        <button
-          type="submit"
-          className="submit-button"
-          disabled={loadingWeather || rainfall === null}
-        >
-          Predict
-        </button>
-        <Button
-          variant="contained"
-          className="submit-button-2"
-          onClick={() => setOpenTableModal(true)}
-        >
-          View Future River Widths
-        </Button>
+        <Tooltip title="Run erosion prediction using current inputs" arrow>
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loadingWeather || rainfall === null}
+          >
+            Predict
+          </button>
+        </Tooltip>
+
+        <Tooltip title="Open a table of future river widths for the selected points" arrow>
+          <Button
+            variant="contained"
+            className="submit-button-2"
+            onClick={() => setOpenTableModal(true)}
+          >
+            View Future River Widths
+          </Button>
+        </Tooltip>
       </form>
 
       {error && <p className="error-message">{error}</p>}
@@ -497,71 +590,63 @@ const RiverbankErosion = () => {
       <div className="split-screen-container">
         <div id="map" className="map-container" />
 
-        {heatmap && (
-          <div className="heatmap-container">
-            <img
-              src={`data:image/png;base64,${heatmap}`}
-              alt="Heatmap"
-              style={{ width: "100%", marginBottom: 20 }}
-            />
-            <div className="heatmap-inputs">
-              <div className="dropdown-button-container">
-                <div
-                  className={`dropdown-checklist ${
-                    isDropdownOpen ? "active" : ""
-                  }`}
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                >
-                  <button className="dropdown-toggle">
-                    Select Points (1-25) ▼
-                  </button>
-                  <div className="dropdown-content">
-                    <div className="checklist-container">
-                      {Array.from({ length: 25 }, (_, i) => i + 1).map((n) => (
-                        <div key={n} className="checklist-item">
-                          <input
-                            type="checkbox"
-                            id={`num-${n}`}
-                            checked={points.split(",").includes(String(n))}
-                            onChange={() => handleCheckboxChange(n)}
-                          />
-                          <label htmlFor={`num-${n}`}>{n}</label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+        {/* ─────────────── XAI HEAT-MAP ─────────────── */}
+        <div className="">
+          {heatmap && (
+            <div className="xai-module">
+              {/* Header with gradient and icon */}
+              <div className="xai-header">
+                <div className="xai-title-container">
+                  <svg className="xai-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12,2L4,5V11.09C4,16.14 7.41,20.85 12,22C16.59,20.85 20,16.14 20,11.09V5L12,2M12.75,13.47L12.75,7H11.25V13.47L9.75,12L8.75,13.07L11.06,15.38L12,16.32L12.94,15.38L15.25,13.07L14.25,12L12.75,13.47Z" />
+                  </svg>
+                  <Tooltip
+                    arrow
+                    title="Explainable-AI view: colour intensity shows how much each quarter drives the current erosion estimate"
+                  >
+                    <h3 className="xai-title">
+                      <span className="xai-title-text">XAI Influence Analysis</span>
+                    </h3>
+                  </Tooltip>
                 </div>
-                <div className="selected-numbers">
-                  <strong>Selected:</strong> {points || "None"}
+                
+
+                {/* Description with animated underline */}
+                <div className="xai-description-container">
+                  <p className="xai-description">
+                    This panel breaks down the model's forecast by showing the{" "}
+                    <strong className="xai-highlight">relative influence of the most recent five timesteps</strong>{" "}
+                    on your selected&nbsp;river points. Use it to see <em className="xai-emphasis">which</em>{" "}
+                    quarters the model considered most important when estimating the
+                    annual erosion rate.
+                  </p>
+                  <div className="xai-underline"></div>
                 </div>
               </div>
 
-              <button
-                className="submit-button-3"
-                onClick={async () => {
-                  try {
-                    const { data } = await axios.post(
-                      `${API_BASE}/predict_erosion/heatmap`,
-                      {
-                        year: +year,
-                        quarter: +quarter,
-                        points: points.split(",").map(Number),
-                        rainfall: +rainfall,
-                        temperature: +temperature,
-                      }
-                    );
-                    setHeatmap(data.heatmap_png_base64);
-                  } catch {
-                    setError("Failed to generate heatmap.");
-                  }
-                }}
+              {/* Heatmap with modern frame and interactive elements */}
+              <Tooltip
+                arrow
+                title="Hover to see the influence value for each quarter–point pair"
               >
-                Update Heatmap
-              </button>
+     
+                  <div className="">
+                    <img
+                      src={`data:image/png;base64,${heatmap}`}
+                      alt="XAI quarter-influence heat-map"
+                      className="xai-heatmap-image"
+                    />
+
+                  </div>
+  
+              </Tooltip>
+
+
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
 
       <Dialog
         open={openTableModal}
@@ -569,15 +654,17 @@ const RiverbankErosion = () => {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Future River Width Values</DialogTitle>
+        <DialogTitle>Future River Width Values (m)</DialogTitle>
         <DialogContent className="scrollable-dialog-content">
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Year</TableCell>
-                  {pointCoordinates.map((p) => (
-                    <TableCell key={p.id}>{p.id.replace(/_/g, " ")}</TableCell>
+                  {closestPoints.map((p) => (
+                    <TableCell key={p.id}>
+                      {p.id.replace(/_/g, " ")} (m)
+                    </TableCell>
                   ))}
                 </TableRow>
               </TableHead>
@@ -585,8 +672,12 @@ const RiverbankErosion = () => {
                 {Object.entries(tableRows).map(([yr, pts]) => (
                   <TableRow key={yr}>
                     <TableCell>{yr}</TableCell>
-                    {pointCoordinates.map((p) => (
-                      <TableCell key={p.id}>{pts[p.id] || "-"}</TableCell>
+                    {closestPoints.map((p) => (
+                      <TableCell key={p.id}>
+                        {pts[p.id]
+                          ? parseFloat(pts[p.id]).toFixed(2)
+                          : "-"}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -595,10 +686,13 @@ const RiverbankErosion = () => {
           </TableContainer>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenTableModal(false)}>Close</Button>
-          <Button onClick={downloadPDF}>Download as PDF</Button>
+          <Button className="mui-download-btn" onClick={() => setOpenTableModal(false)}>Close</Button>
+          <Tooltip title="Export the table and selected point coordinates to PDF" arrow>
+            <Button className="mui-download-btn" onClick={downloadPDF}>Download as PDF</Button>
+          </Tooltip>
         </DialogActions>
       </Dialog>
+
     </div>
   );
 };
