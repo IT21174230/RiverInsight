@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { BrowserRouter as Router , Routes, Route} from "react-router-dom";
 import './App.css';
  
-import FloodDashboard from "./pages/Floodui";
+// import FloodDashboard from "./pages/Floodui";
  
 import MorphologicalPredictions from "./Morphology";
 import Navigation from './Navigation';
 import RiverbankErosion from "./riverbankErosion";
- 
+import SimulationTool from "./simulation_tool"; // Import the simulation tool component
 
 const App = () => {
   const [selectedOption, setSelectedOption] = useState("");
@@ -62,9 +62,13 @@ const App = () => {
           <div className="analysis-content expanded-width">
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
             {selectedOption === "erosion" && <RiverbankErosion />}
-            {selectedOption === "flooding" && <p><FloodDashboard/></p>}
+            {/* {selectedOption === "flooding" && <p><FloodDashboard/></p>} */}
           </div>
         )}
+
+        <Routes>
+          <Route path="/simulation-tool" element={<SimulationTool />} />
+        </Routes>
 
         <footer className="footer">
           <p>Contact us: <a href="mailto:riverinsight.team@gmail.com">riverinsight.team@gmail.com</a></p>

@@ -536,6 +536,7 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: redIcon.options.iconUrl,
@@ -588,10 +589,10 @@ const SimulationTool = () => {
     return coordinates.map(([lat, lng]) => {
       const latOffset = (Math.random() - 0.5) * 0.001;
       const lngOffset = (Math.random() - 0.5) * 0.001;
+
       return [lat + latOffset, lng + lngOffset];
     });
   };
-
   useEffect(() => {
     if (predictions.length > 0) {
       const adjusted = predictions.map((pred) =>
@@ -759,7 +760,6 @@ const SimulationTool = () => {
       setLoading(false);
     }
   };
-
   const generateTimelineData = () =>
     predictions.map((pred) => ({
       year: pred.year,
@@ -1082,10 +1082,10 @@ const renderControlPointMaps = () => {
   );
 };
 
-
   return (
     <div className="simulation-container">
       <h2>Simulation Tool</h2>
+
       <h3>Forecasting Begins: Quarter 1, 2025 — Unlocking Future Insights</h3>
       {/* Step 1 or CSV Upload */}
       {(step === 1 || step === 0) && (
@@ -1526,6 +1526,7 @@ const renderControlPointMaps = () => {
           </button>
         </>
       )}
+
     </div>
   );
 };

@@ -32,6 +32,7 @@ SCALER_TARGETS_PATH = os.path.join(BASE_DIR, 'data_dir', 'scaler_targets_simulat
 latitudes=np.load(latitudes_path)
 longitudes=np.load(longitudes_path)
 
+
 x1, y1 = 497, 305
 x2, y2 = 513, 298
 
@@ -130,6 +131,7 @@ def prepare_future_input_simulation_year_quarter(input_year, input_quarter, rain
 
     data_df = pd.DataFrame(data)
     return data_df
+
 
 def get_perpendicular_point(known_coord, d_shift):
     """
