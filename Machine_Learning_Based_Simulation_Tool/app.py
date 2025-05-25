@@ -12,6 +12,7 @@ from utils.simulation_tool import load_resource_simulation , make_prediction_sim
 from utils.simulation_tool_xai import *
 from flask import send_from_directory
 from flask_cors import CORS
+import traceback
 
 # Flask constructor takes the name of current module (__name__) as argument.
 app = Flask(__name__)
@@ -19,7 +20,7 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_cred
 init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
-model, scaler_ts, scaler_year = load_resources()
+model, scalers, feature_cols,model_1, scaler_ts, scaler_year = load_resources()
 
 # load resources 4 flood prediction
 prophet_model, prophet_train, temp_model, hum_model, rain_model = load_model()
@@ -113,41 +114,32 @@ def predict_heatmap():
 
         year         = int(data["year"])
         quarter      = int(data["quarter"])
-        rainfall     = float(data["rainfall"])
-        temperature  = float(data["temperature"])
         points       = list(map(int, data.get("points", [])))
+        timesteps    = int(data.get("timesteps", 5))
 
         if not points:
             return jsonify({"error": "points must be a non-empty list"}), 400
 
-        # optional delta overrides
-        delta_year    = float(data.get("delta_year",    1))
-        delta_quarter = int  (data.get("delta_quarter", 1))
-        delta_rain    = float(data.get("delta_rain",    0.05))
-        delta_temp    = float(data.get("delta_temp",    1.0))
-
-        b64_png = generate_feature_sensitivity_heatmap(
-            year, quarter,
+        # Generate heatmap
+        b64_png = generate_heatmap_with_timesteps(
+            model=model_1,
+            start_year=year,
+            start_quarter=quarter,
+            scaler_year=scaler_year,
             points=points,
-            rainfall=rainfall,
-            temperature=temperature,
-            delta_year=delta_year,
-            delta_quarter=delta_quarter,
-            delta_rain=delta_rain,
-            delta_temp=delta_temp,
+            timesteps=timesteps
         )
 
         return jsonify({
-            "year"       : year,
-            "quarter"    : quarter,
-            "rainfall"   : rainfall,
-            "temperature": temperature,
-            "points"     : points,
+            "year": year,
+            "quarter": quarter,
+            "points": points,
+            "timesteps": timesteps,
             "heatmap_png_base64": b64_png
         }), 200
 
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": str(exc), "trace": traceback.format_exc()}), 500
     
 # New route for simulation tool prediction
 @app.route('/predict_simulation_tool', methods=['POST'])
