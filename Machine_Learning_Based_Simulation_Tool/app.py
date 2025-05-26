@@ -19,7 +19,7 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_cred
 init_cache(app)
 
 # Load resources (model and scalers) globally for riverbank erosion
-model, scaler_ts, scaler_year = load_resources()
+model, scalers, feature_cols,model_1, scaler_ts, scaler_year = load_resources()
 
 # load resources 4 flood prediction
 prophet_model, prophet_train, temp_model, hum_model, rain_model = load_model()
@@ -132,89 +132,32 @@ def predict_heatmap():
 
         year         = int(data["year"])
         quarter      = int(data["quarter"])
-        rainfall     = float(data["rainfall"])
-        temperature  = float(data["temperature"])
         points       = list(map(int, data.get("points", [])))
+        timesteps    = int(data.get("timesteps", 5))
 
         if not points:
             return jsonify({"error": "points must be a non-empty list"}), 400
 
-        # optional delta overrides
-        delta_year    = float(data.get("delta_year",    1))
-        delta_quarter = int  (data.get("delta_quarter", 1))
-        delta_rain    = float(data.get("delta_rain",    0.05))
-        delta_temp    = float(data.get("delta_temp",    1.0))
-
-        b64_png = generate_feature_sensitivity_heatmap(
-            year, quarter,
+        # Generate heatmap
+        b64_png = generate_heatmap_with_timesteps(
+            model=model_1,
+            start_year=year,
+            start_quarter=quarter,
+            scaler_year=scaler_year,
             points=points,
-            rainfall=rainfall,
-            temperature=temperature,
-            delta_year=delta_year,
-            delta_quarter=delta_quarter,
-            delta_rain=delta_rain,
-            delta_temp=delta_temp,
+            timesteps=timesteps
         )
 
         return jsonify({
-            "year"       : year,
-            "quarter"    : quarter,
-            "rainfall"   : rainfall,
-            "temperature": temperature,
-            "points"     : points,
+            "year": year,
+            "quarter": quarter,
+            "points": points,
+            "timesteps": timesteps,
             "heatmap_png_base64": b64_png
         }), 200
 
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-    
-# New route for simulation tool prediction
-@app.route('/predict_simulation_tool', methods=['POST'])
-def predict():
-    try:
-        # Parse input data
-        input_data = request.get_json()
-        date = input_data.get('date')
-        rainfall = input_data.get('rainfall')
-        temp = input_data.get('temp')
-
-        # Prepare input features
-        future_X = prepare_future_input_simulation(date, rainfall, temp)
-
-        # Make predictions
-        predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
-
-        # Calculate SHAP feature importance
-        feature_names = ['year', 'quarter', 'rainfall', 'temperature']
-        target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
-        feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
-
-        # Calculate SHAP feature importance per target and generate heatmap URL
-        feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
-            model=simulation_model,
-            data=future_X,
-            feature_names=feature_names,
-            target_names=target_names
-        )
-
-        # Prepare response
-        response = {
-            "predictions": predictions_df.to_dict(orient='records'),
-            "feature_importance": feature_importance,
-            "feature_importance_per_target": feature_importance_per_target,
-            "heatmap_url": heatmap_url,  # Return the base64-encoded image URL
-            "centerline_coordinates": predictions_df['centerline_coordinates'].iloc[0]  # Add centerline coordinates
-        }
-        return jsonify(response), 200
-
-    except HTTPException:
-        return jsonify({"message": "Unsupported Media Type: Send request as encoded JSON"}), 415
-    except KeyError as e:
-        return jsonify({"message": f"{e} - Key not found in request body"}), 404
-    except ValueError as e:
-        return jsonify({"message": f"{e} - Request body input is invalid"}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(exc), "trace": traceback.format_exc()}), 500
 
 
 # ------------------------------------------------------------------
@@ -264,6 +207,56 @@ def get_erosion_history():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
     
+
+    
+# New route for simulation tool prediction
+@app.route('/predict_simulation_tool', methods=['POST'])
+def predict():
+    try:
+        # Parse input data
+        input_data = request.get_json()
+        date = input_data.get('date')
+        rainfall = input_data.get('rainfall')
+        temp = input_data.get('temp')
+
+        # Prepare input features
+        future_X = prepare_future_input_simulation(date, rainfall, temp)
+
+        # Make predictions
+        predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
+
+        # Calculate SHAP feature importance
+        feature_names = ['year', 'quarter', 'rainfall', 'temperature']
+        target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
+        feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
+
+        # Calculate SHAP feature importance per target and generate heatmap URL
+        feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
+            model=simulation_model,
+            data=future_X,
+            feature_names=feature_names,
+            target_names=target_names
+        )
+
+        # Prepare response
+        response = {
+            "predictions": predictions_df.to_dict(orient='records'),
+            "feature_importance": feature_importance,
+            "feature_importance_per_target": feature_importance_per_target,
+            "heatmap_url": heatmap_url,  # Return the base64-encoded image URL
+            "centerline_coordinates": predictions_df['centerline_coordinates'].iloc[0]  # Add centerline coordinates
+        }
+        return jsonify(response), 200
+
+    except HTTPException:
+        return jsonify({"message": "Unsupported Media Type: Send request as encoded JSON"}), 415
+    except KeyError as e:
+        return jsonify({"message": f"{e} - Key not found in request body"}), 404
+    except ValueError as e:
+        return jsonify({"message": f"{e} - Request body input is invalid"}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route("/predict/flooding", methods=["GET"])
 def get_prediction():
     date = request.args.get("date")
