@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp, return_short_term_to_hp
+from utils.meander_migration import return_to_hp
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
@@ -93,15 +93,6 @@ def get_raw_point_vals():
         'predictions': result
     })
     # p=return_to_hp(y, q, temp, rain)
-
-@app.get('/meander_migration/params/short_term/explain')
-def get_shap_explanation():
-    query = request.args.to_dict()
-    y = int(query['year'])
-    q = int(query['quart'])
-    map_idx = int(query['idx'])
-    map = send_map_to_api(y, q, map_idx)
-    return map
 
 # New route for riverbank erosion prediction
 @app.route("/predict_erosion", methods=["POST"])
