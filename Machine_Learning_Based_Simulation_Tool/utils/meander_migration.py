@@ -10,6 +10,7 @@ import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
 
 model=r'model\0_85_0_59_filt3_6feat.joblib'
+model_s=r'model\xgb.joblib'
 scaler_year=r'data_dir\scaler_year.pkl'
 scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
@@ -19,6 +20,7 @@ latitudes=r'data_dir\y_coords_7.5m.npy'
 longitudes=r'data_dir\x_coords_7.5m.npy'
 
 model=joblib.load(model)
+model_s=joblib.load(model_s) #short term prediction model
 scaler_year=joblib.load(scaler_year)
 scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
@@ -148,6 +150,37 @@ def get_past_meandering_values(df, target_year, target_quarter):
       filtered_df['bend_3'] = np.abs((filtered_df['c7_dist'] - filtered_df['c8_dist']).astype(float).round(4))
   return filtered_df
 
+def get_short_term_predictions(model, years, quarters, rain_list, temp_list, scaler_year):
+    n = len(years)
+
+    # Scale year values
+    year_array = scaler_year.transform(np.array(years).reshape(-1, 1))
+
+    # Encode quarter as sin/cos
+    quarter_sin = np.sin(2 * np.pi * np.array(quarters) / 4)
+    quarter_cos = np.cos(2 * np.pi * np.array(quarters) / 4)
+
+    # Convert temp/rain to arrays, repeat if needed
+    tp = np.array(temp_list)
+    rain = np.array(rain_list)
+    if len(tp) != n:
+        tp = np.resize(tp, n)
+    if len(rain) != n:
+        rain = np.resize(rain, n)
+
+    # Construct DataFrame
+    df = pd.DataFrame({
+        'year_scaled': year_array.flatten(),
+        'quarter_sin': quarter_sin,
+        'quarter_cos': quarter_cos,
+        'tp': tp,
+        't2m': rain
+    })
+
+    # Predict
+    preds = model.predict(df)
+    return preds
+
 def return_to_hp(year, quarter):
   if year>2024:
     try:
@@ -194,4 +227,9 @@ def return_to_hp(year, quarter):
     return get_past_meandering_values(past_vals, year, quarter)
   
 
+
+def return_short_term_to_hp(year, quarter, temp, rain):
+    y, q, l = get_new_time(year, quarter)
+    preds = get_short_term_predictions(model_s, y, q, rain, temp, scaler_year)
+    return preds
 

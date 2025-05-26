@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp
+from utils.meander_migration import return_to_hp, return_short_term_to_hp
 from utils.meander_migration_xai import send_map_to_api
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
@@ -64,16 +64,35 @@ def get_saliency():
     map = send_map_to_api(y, q, map_idx)
     return map
 
-# @app.get('/meander_migration/params/get_point_values/')
-# def get_raw_point_vals():
-#     query = request.args.to_dict()
-#     y = int(query['year'])
-#     q = int(query['quart'])
-#     raw_df = get_raw_predictions(y, q)
-#     try:
-#         return jsonify(raw_df.to_dict(orient="records"))
-#     except:
-#         return jsonify(raw_df)
+@app.get('/meander_migration/params/short_term/')
+def get_raw_point_vals():
+    query = request.args.to_dict()
+    y = int(query['year'])
+    q = int(query['quart'])
+
+    # Get temperature and rainfall as lists
+    temp = list(map(float, request.args.getlist('temp')))
+    rain = list(map(float, request.args.getlist('rain')))
+
+    # Ensure lengths match
+    if len(temp) != len(rain):
+        return jsonify({'error': 'Temperature and Rainfall lists must be the same length'}), 400
+
+    # Make prediction using model
+    predictions = return_short_term_to_hp(y, q, temp, rain)
+
+    # Format output DataFrame to send back to frontend
+    prediction_df = pd.DataFrame(predictions, columns=['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist'])
+    result = prediction_df.to_dict(orient='records')
+
+    return jsonify({
+        'year': y,
+        'quart': q,
+        'temperature': temp,
+        'rainfall': rain,
+        'predictions': result
+    })
+    # p=return_to_hp(y, q, temp, rain)
 
 # New route for riverbank erosion prediction
 @app.route("/predict_erosion", methods=["POST"])
