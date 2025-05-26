@@ -11,6 +11,16 @@ const REQUIRED_FIELDS = [
   "Volumetric Soil Water Layer 1", "Surface Runoff"
 ];
 
+const REFERENCE_DISTANCES = {
+  c1_dist: 144.9163818359375,
+  c2_dist: 73.75137329101562,
+  c3_dist: 993.3526000976562,
+  c4_dist: 992.0204467773438,
+  c7_dist: 2007.3299560546875,
+  c8_dist: 2205.82958984375
+};
+
+
 const HydrologicalPredictions = ({ onClose }) => {
   const [message, setMessage] = useState('');
   const [isValid, setIsValid] = useState(null);
@@ -247,12 +257,14 @@ const HydrologicalPredictions = ({ onClose }) => {
                             <td>{predictionResults.temperature[idx]}</td>
                             <td>{predictionResults.lv[idx]}</td>
                             <td>{predictionResults.hv[idx]}</td>
-                            <td>{p.c1_dist.toFixed(2)} ±0.625</td>
-                            <td>{p.c2_dist.toFixed(2)} ±0.625</td>
-                            <td>{p.c3_dist.toFixed(2)} ±0.625</td>
-                            <td>{p.c4_dist.toFixed(2)} ±0.625</td>
-                            <td>{p.c7_dist.toFixed(2)} ±0.625</td>
-                            <td>{p.c8_dist.toFixed(2)} ±0.625</td>
+                        
+                            <td>{(p.c1_dist - REFERENCE_DISTANCES.c1_dist).toFixed(2)} ±0.625</td>
+                            <td>{(p.c2_dist - REFERENCE_DISTANCES.c2_dist).toFixed(2)} ±0.625</td>
+                            <td>{(p.c3_dist - REFERENCE_DISTANCES.c3_dist).toFixed(2)} ±0.625</td>
+                            <td>{(p.c4_dist - REFERENCE_DISTANCES.c4_dist).toFixed(2)} ±0.625</td>
+                            <td>{(p.c7_dist - REFERENCE_DISTANCES.c7_dist).toFixed(2)} ±0.625</td>
+                            <td>{(p.c8_dist - REFERENCE_DISTANCES.c8_dist).toFixed(2)} ±0.625</td>
+
                         </tr>
                         );
                     })}
