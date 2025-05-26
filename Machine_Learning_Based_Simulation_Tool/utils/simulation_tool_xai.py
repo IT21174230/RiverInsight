@@ -11,6 +11,7 @@ import lime.lime_tabular
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from io import BytesIO
 
 
 def calculate_shap_feature_importance(model, data, feature_names):
@@ -41,13 +42,10 @@ def calculate_shap_feature_importance(model, data, feature_names):
     return feature_importance_dict
 
 
-
-import numpy as np
-import shap
-
 def calculate_shap_feature_importance_per_target(model, data, feature_names, target_names):
     """
-    Calculate SHAP-based feature importance for each target variable individually.
+    Calculate SHAP-based feature importance for each target variable individually and generate a heatmap.
+    Returns a base64-encoded image URL for the heatmap.
     
     Parameters:
         model: The trained model (e.g., MultiOutputRegressor).
@@ -56,10 +54,14 @@ def calculate_shap_feature_importance_per_target(model, data, feature_names, tar
         target_names: List of target variable names.
     
     Returns:
-        A dictionary where keys are target names and values are dictionaries of feature importance percentages.
+        A dictionary where keys are target names and values are dictionaries of feature importance percentages,
+        and a base64-encoded image URL for the heatmap.
     """
     # Initialize a dictionary to store feature importance for each target
     feature_importance_per_target = {}
+
+    # Initialize a matrix to store feature importance values for the heatmap
+    heatmap_data = np.zeros((len(target_names), len(feature_names)))
 
     # Iterate over each target variable
     for i, target_name in enumerate(target_names):
@@ -86,5 +88,28 @@ def calculate_shap_feature_importance_per_target(model, data, feature_names, tar
         
         # Store the feature importance dictionary for the current target
         feature_importance_per_target[target_name] = feature_importance_dict
-    
-    return feature_importance_per_target
+        
+        # Store the feature importance percentages in the heatmap data matrix
+        heatmap_data[i, :] = feature_importance_percentages
+
+    # Generate the heatmap without annotations
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(heatmap_data, annot=False, cmap="YlGnBu", 
+                xticklabels=feature_names, yticklabels=target_names)
+    plt.xlabel("Features")
+    plt.ylabel("Targets")
+
+    # Save the heatmap to a BytesIO object
+    buffer = BytesIO()
+    plt.savefig(buffer, format="png")
+    plt.close()
+    buffer.seek(0)
+
+    # Encode the image as a base64 string
+    heatmap_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    buffer.close()
+
+    # Create a data URL for the image
+    heatmap_url = f"data:image/png;base64,{heatmap_base64}"
+
+    return feature_importance_per_target, heatmap_url

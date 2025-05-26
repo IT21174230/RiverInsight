@@ -3,7 +3,7 @@ import numpy as np
 import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
-from utils.meander_migration_xai import intialize_model, generate_map, generate_map_png
+from utils.meander_migration_xai import intialize_model, generate_map
 from utils.com_cache import m_cache, data_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
@@ -193,43 +193,5 @@ def return_to_hp(year, quarter):
     past_vals=pd.read_csv(past_migration_vals, index_col=0)
     return get_past_meandering_values(past_vals, year, quarter)
   
-def get_perpendicular_point(known_coord, d_shift):
-  shifted_coord=d_shift+known_coord
-  return shifted_coord
-
-def get_coordinates(x_pix, y_pix):
-  lat=latitudes[x_pix, y_pix]
-  long=longitudes[x_pix, y_pix]
-
-  return (lat,long)
-  
-def get_raw_predictions(year, quarter):
-  cache_key=f'{year}_{quarter}'
-  raw_df=data_cache.get(cache_key)
-  control_points_std=[[248, 309], [236, 309], [409, 330], [409, 344], [533, 374], [548, 383], [497, 305], [513, 298]]
-  if raw_df is not None:
-    dist_cols = raw_df.select_dtypes(include=['number'])
-    latest_infer = dist_cols.iloc[-1].to_dict()
-
-    new_centerline_points={}
-    centerline_coordinates=[]
-
-    index_mapping = {
-    0: lambda l: [get_perpendicular_point(control_points_std[0][1], l), control_points_std[0][1]],
-    1: lambda l: [get_perpendicular_point(control_points_std[1][1], l), control_points_std[1][1]],
-    3: lambda l: [control_points_std[2][0], get_perpendicular_point(control_points_std[2][0], l)],
-    4: lambda l: [control_points_std[3][0], get_perpendicular_point(control_points_std[3][0], l)]
-    }
-
-    for i, l in enumerate(latest_infer.values()):  
-      if i in index_mapping: 
-          new_centerline_points[i] = index_mapping[i](l)
-
-    for i in new_centerline_points.values():
-      centerline_coordinates.append(get_coordinates(int(i[0]), int(i[1])))
-    
-    return centerline_coordinates
-  else:
-    return 'predict first to get point values'
 
 
