@@ -16,13 +16,6 @@ h2 {
   text-align: center;
 }
 
-h3 {
-  font-size: 1.4rem;
-  color: #1a6b4b; /* Darker color for section titles */
-  margin-bottom: 10px;
-  margin-top: -4px;
-}
-
 /* Form Container */
 .form-container {
   display: flex;
@@ -277,40 +270,3 @@ button:disabled {
   font-weight: bold;
 }
 
-/* Group label and input nicely aligned */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 20px;
-  width: 250px; /* match your input widths */
-}
-
-.input-group label {
-  font-weight: 600;
-  color: #1a6b4b;
-  margin-bottom: 8px;
-  font-size: 1rem;
-}
-
-.styled-select {
-  padding: 12px 14px;
-  font-size: 1rem;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  background-color: #fff;
-  transition: border 0.3s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2212%22%20height%3D%227%22%20viewBox%3D%220%200%2012%207%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1%201L6%206L11%201%22%20stroke%3D%22%231a6b4b%22%20stroke-width%3D%222%22/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 12px 7px;
-  cursor: pointer;
-  height: 44px; /* match text input height */
-  width: 100%; /* fill container */
-}
-
-.styled-select:hover,
-.styled-select:focus {
-  border-color: #388E3C;
-  outline: none;
-}
