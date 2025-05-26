@@ -7,21 +7,31 @@ from numpyencoder import NumpyEncoder
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
 import joblib
+import os
 
 # global model
 # with open('Machine_Learning_Based_Simulation_Tool/model/riverinsight_simulation_model.pkl', 'rb') as f:
 #     model = pkl.load(f)
 
-MODEL_PATH = r'model\riverinsight_simulation_ML_model.pkl'
+# MODEL_PATH = r'Machine_Learning_Based_Simulation_Tool\model\riverinsight_simulation_ML_model.pkl'
 
-SCALER_FEATURES_PATH = r'data_dir\scaler_rain_temp_simulation.pkl'
-SCALER_TARGETS_PATH = r'data_dir\scaler_targets_simulation.pkl'
+# SCALER_FEATURES_PATH = r'Machine_Learning_Based_Simulation_Tool\data_dir\scaler_rain_temp_simulation.pkl'
+# SCALER_TARGETS_PATH = r'Machine_Learning_Based_Simulation_Tool\data_dir\scaler_targets_simulation.pkl'
 
-latitudes=r'data_dir\y_coords_7.5m.npy'
-longitudes=r'data_dir\x_coords_7.5m.npy'
+# latitudes=r'Machine_Learning_Based_Simulation_Tool\data_dir\y_coords_7.5m.npy'
+# longitudes=r'Machine_Learning_Based_Simulation_Tool\data_dir\x_coords_7.5m.npy'
 
-latitudes=np.load(latitudes)
-longitudes=np.load(longitudes)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+latitudes_path = os.path.join(BASE_DIR, 'data_dir', 'y_coords_7.5m.npy')
+longitudes_path = os.path.join(BASE_DIR, 'data_dir', 'x_coords_7.5m.npy')
+
+MODEL_PATH = os.path.join(BASE_DIR, 'model', 'riverinsight_simulation_ML_model.pkl')
+SCALER_FEATURES_PATH = os.path.join(BASE_DIR, 'data_dir', 'scaler_rain_temp_simulation.pkl')
+SCALER_TARGETS_PATH = os.path.join(BASE_DIR, 'data_dir', 'scaler_targets_simulation.pkl')
+
+latitudes=np.load(latitudes_path)
+longitudes=np.load(longitudes_path)
+
 
 x1, y1 = 497, 305
 x2, y2 = 513, 298
@@ -57,43 +67,69 @@ def load_resource_simulation():
 #         df[quarter_flag_column] = df['quarter'].apply(lambda x: True if int(x) == i else False)
 #     return df
 
-def generate_quarters_range(input_date):
-    """
-    Generate a list of quarters from 2025-Q1 to the input date's quarter.
-    """
-    input_date = datetime.strptime(input_date, '%Y-%m-%d')
-    input_year = input_date.year
-    input_quarter = (input_date.month - 1) // 3 + 1
+# def generate_quarters_range(input_date):
+#     """
+#     Generate a list of quarters from 2025-Q1 to the input date's quarter.
+#     """
+#     input_date = datetime.strptime(input_date, '%Y-%m-%d')
+#     input_year = input_date.year
+#     input_quarter = (input_date.month - 1) // 3 + 1
 
+#     quarters = []
+#     for year in range(2025, input_year + 1):
+#         start_quarter = 1 if year > 2025 else 1  # Start from Q1 for 2025
+#         end_quarter = input_quarter if year == input_year else 4  # End at input quarter for the input year
+
+#         for quarter in range(start_quarter, end_quarter + 1):
+#             quarters.append((year, quarter))
+    
+#     return quarters
+
+# def prepare_future_input_simulation(date, rainfall, temp):
+#     """
+#     Prepare input data for the model.
+#     """
+#     quarters = generate_quarters_range(date)
+#     data = []
+
+#     for year, quarter in quarters:
+#         row = {
+#             'date': pd.to_datetime(f'{year}-{quarter * 3 - 2}-01'),  # Start of the quarter
+#             'year': year,
+#             'quarter': quarter,
+#             'rainfall': float(rainfall),
+#             'temperature': float(temp)
+#         }
+#         data.append(row)
+
+#     data_df = pd.DataFrame(data)
+#     print("Input DataFrame before scaling:\n", data_df)
+#     return data_df
+
+def prepare_future_input_simulation_year_quarter(input_year, input_quarter, rainfall, temp):
+    """
+    Generate quarters from 2025-Q1 to input_year-input_quarter.
+    Prepare dataframe for simulation inputs.
+    """
     quarters = []
     for year in range(2025, input_year + 1):
-        start_quarter = 1 if year > 2025 else 1  # Start from Q1 for 2025
-        end_quarter = input_quarter if year == input_year else 4  # End at input quarter for the input year
+        start_q = 1
+        end_q = input_quarter if year == input_year else 4
+        for q in range(start_q, end_q + 1):
+            quarters.append((year, q))
 
-        for quarter in range(start_quarter, end_quarter + 1):
-            quarters.append((year, quarter))
-    
-    return quarters
-
-def prepare_future_input_simulation(date, rainfall, temp):
-    """
-    Prepare input data for the model.
-    """
-    quarters = generate_quarters_range(date)
     data = []
-
     for year, quarter in quarters:
         row = {
-            'date': pd.to_datetime(f'{year}-{quarter * 3 - 2}-01'),  # Start of the quarter
             'year': year,
             'quarter': quarter,
             'rainfall': float(rainfall),
-            'temperature': float(temp)
+            'temperature': float(temp),
+            'date': pd.to_datetime(f'{year}-{quarter * 3 - 2}-01')  # Keep for compatibility
         }
         data.append(row)
 
     data_df = pd.DataFrame(data)
-    print("Input DataFrame before scaling:\n", data_df)
     return data_df
 
 

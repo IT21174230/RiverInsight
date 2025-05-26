@@ -2,28 +2,37 @@ from flask import Flask, request, jsonify
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp
-from utils.meander_migration_xai import send_map_to_api
-from utils.com_cache import m_cache, data_cache, init_cache
-from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
+import json
+import base64
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from numpyencoder import NumpyEncoder
+from werkzeug.exceptions import HTTPException
+from utils.meander_migration import return_to_hp, get_raw_predictions
+from utils.meander_migration_xai import clear_images, send_map_to_api
+from utils.com_cache import m_cache, init_cache, data_cache
+from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
-from utils.FloodLogic import load_model, flood_prediction_logic
-from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
+from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation_year_quarter
 from utils.simulation_tool_xai import *
 from flask import send_from_directory
 from flask_cors import CORS
+import traceback
 
-# Flask constructor takes the name of current module (__name__) as argument.
+# Flask constructor takes the name of 
+# current module (__name__) as argument.
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
-init_cache(app)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}}, supports_credentials=True)
+# init_cache(app)
 
-# Load resources (model and scalers) globally for riverbank erosion
+# # Load resources (model and scalers) globally for riverbank erosion
 model, scaler_ts, scaler_year = load_resources()
-
+# Load resources (model and scalers) globally for riverbank erosion
+model, scalers, feature_cols,model_1, scaler_ts, scaler_year = load_resources()
 # load resources 4 flood prediction
 prophet_model, prophet_train, temp_model, hum_model, rain_model = load_model()
-
 #load model for simulation
 simulation_model, scaler_features, scaler_targets = load_resource_simulation()
 
@@ -113,41 +122,32 @@ def predict_heatmap():
 
         year         = int(data["year"])
         quarter      = int(data["quarter"])
-        rainfall     = float(data["rainfall"])
-        temperature  = float(data["temperature"])
         points       = list(map(int, data.get("points", [])))
+        timesteps    = int(data.get("timesteps", 5))
 
         if not points:
             return jsonify({"error": "points must be a non-empty list"}), 400
 
-        # optional delta overrides
-        delta_year    = float(data.get("delta_year",    1))
-        delta_quarter = int  (data.get("delta_quarter", 1))
-        delta_rain    = float(data.get("delta_rain",    0.05))
-        delta_temp    = float(data.get("delta_temp",    1.0))
-
-        b64_png = generate_feature_sensitivity_heatmap(
-            year, quarter,
+        # Generate heatmap
+        b64_png = generate_heatmap_with_timesteps(
+            model=model_1,
+            start_year=year,
+            start_quarter=quarter,
+            scaler_year=scaler_year,
             points=points,
-            rainfall=rainfall,
-            temperature=temperature,
-            delta_year=delta_year,
-            delta_quarter=delta_quarter,
-            delta_rain=delta_rain,
-            delta_temp=delta_temp,
+            timesteps=timesteps
         )
 
         return jsonify({
-            "year"       : year,
-            "quarter"    : quarter,
-            "rainfall"   : rainfall,
-            "temperature": temperature,
-            "points"     : points,
+            "year": year,
+            "quarter": quarter,
+            "points": points,
+            "timesteps": timesteps,
             "heatmap_png_base64": b64_png
         }), 200
 
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": str(exc), "trace": traceback.format_exc()}), 500
     
 # New route for simulation tool prediction
 @app.route('/predict_simulation_tool', methods=['POST'])
@@ -196,6 +196,103 @@ def predict():
         return jsonify({"message": f"{e} - Request body input is invalid"}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/predict_simulation_tool_batch', methods=['POST'])
+def predict_simulation_tool_batch():
+    try:
+        input_data = request.get_json()
+        inputs = input_data.get("inputs", [])
+        if not inputs:
+            return jsonify({"error": "No inputs provided"}), 400
+
+        results = []
+        for entry in inputs:
+            year = entry.get("year")
+            quarter = entry.get("quarter")
+            rainfall = entry.get("rainfall")
+            temp = entry.get("temp")
+
+            if None in (year, quarter, rainfall, temp):
+                return jsonify({"error": f"Missing fields in input: {entry}"}), 400
+
+            df_input = pd.DataFrame([{
+                'year': int(year),
+                'quarter': int(quarter),
+                'rainfall': float(rainfall),
+                'temperature': float(temp),
+                'date': pd.to_datetime(f'{year}-{int(quarter)*3 - 2}-01')
+            }])
+
+            pred_df = make_prediction_simulation(simulation_model, df_input, scaler_features, scaler_targets)
+            pred_dict = pred_df.iloc[0].to_dict()
+            pred_dict["quarter"] = quarter
+
+            coords = pred_dict.get("centerline_coordinates", [])
+            if coords:
+                pred_dict["centerline_coordinates"] = [list(c) for c in coords]
+
+            results.append(pred_dict)
+
+        return jsonify({"predictions": results}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/predict_simulation_tool_batch_with_heatmap', methods=['POST'])
+def predict_with_heatmap():
+    try:
+        input_data = request.get_json()
+        inputs = input_data.get("inputs", [])
+        if not inputs:
+            return jsonify({"error": "No inputs provided"}), 400
+
+        feature_names = ['year', 'quarter', 'rainfall', 'temperature']
+        target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
+
+        results = []
+
+        for entry in inputs:
+            year = entry.get("year")
+            quarter = entry.get("quarter")
+            rainfall = entry.get("rainfall")
+            temp = entry.get("temp")
+
+            if None in (year, quarter, rainfall, temp):
+                return jsonify({"error": f"Missing fields in input: {entry}"}), 400
+
+            # Prepare input DataFrame for that quarter
+            df_input = prepare_future_input_simulation_year_quarter(year, quarter, rainfall, temp)
+            df_single = df_input[df_input['quarter'] == quarter]
+
+            # Predict
+            pred_df = make_prediction_simulation(simulation_model, df_single, scaler_features, scaler_targets)
+            pred_dict = pred_df.iloc[0].to_dict()
+            pred_dict["quarter"] = quarter
+
+            # Convert tuples to lists for JSON serialization
+            coords = pred_dict.get("centerline_coordinates", [])
+            if coords:
+                pred_dict["centerline_coordinates"] = [list(c) for c in coords]
+
+            # Calculate SHAP feature importance per target
+            feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
+                model=simulation_model,
+                data=df_single,
+                feature_names=feature_names,
+                target_names=target_names
+            )
+
+            pred_dict["feature_importance_per_target"] = feature_importance_per_target
+            pred_dict["heatmap_url"] = heatmap_url
+
+            results.append(pred_dict)
+
+        return jsonify({"predictions": results}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 
 # ------------------------------------------------------------------
@@ -256,8 +353,6 @@ def get_prediction():
     if "error" in result:
         return jsonify(result), 400 if "format" in result["error"] else 404
     return jsonify(result)
-
- 
 
 if __name__ == '__main__':
     app.run(debug=True)

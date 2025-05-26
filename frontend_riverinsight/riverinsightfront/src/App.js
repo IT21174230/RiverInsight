@@ -80,14 +80,21 @@ const App = () => {
           )}
         </main>
 
+
         {(showDropdown || showSimulationTool) && (
           <div className="analysis-content full-width" ref={analysisRef}>
             {selectedOption === "meander-migration" && <MeanderPredInterface />}
+
             {selectedOption === "erosion" && <RiverbankErosion />}
+
             {selectedOption === "flooding" && <FloodDashboard />}
             {showSimulationTool && <SimulationTool />}
           </div>
         )}
+
+        <Routes>
+          <Route path="/simulation-tool" element={<SimulationTool />} />
+        </Routes>
 
         <footer className="footer">
           <p>
