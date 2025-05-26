@@ -8,7 +8,7 @@ from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
 from utils.FloodLogic import load_model, flood_prediction_logic
-from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation
+from utils.simulation_tool import load_resource_simulation , make_prediction_simulation, prepare_future_input_simulation_year_quarter
 from utils.simulation_tool_xai import *
 from flask import send_from_directory
 from flask_cors import CORS
@@ -207,55 +207,100 @@ def get_erosion_history():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
     
-
-    
-# New route for simulation tool prediction
-@app.route('/predict_simulation_tool', methods=['POST'])
-def predict():
+@app.route('/predict_simulation_tool_batch', methods=['POST'])
+def predict_simulation_tool_batch():
     try:
-        # Parse input data
         input_data = request.get_json()
-        date = input_data.get('date')
-        rainfall = input_data.get('rainfall')
-        temp = input_data.get('temp')
+        inputs = input_data.get("inputs", [])
+        if not inputs:
+            return jsonify({"error": "No inputs provided"}), 400
 
-        # Prepare input features
-        future_X = prepare_future_input_simulation(date, rainfall, temp)
+        results = []
+        for entry in inputs:
+            year = entry.get("year")
+            quarter = entry.get("quarter")
+            rainfall = entry.get("rainfall")
+            temp = entry.get("temp")
 
-        # Make predictions
-        predictions_df = make_prediction_simulation(simulation_model, future_X, scaler_features, scaler_targets)
+            if None in (year, quarter, rainfall, temp):
+                return jsonify({"error": f"Missing fields in input: {entry}"}), 400
 
-        # Calculate SHAP feature importance
+            df_input = pd.DataFrame([{
+                'year': int(year),
+                'quarter': int(quarter),
+                'rainfall': float(rainfall),
+                'temperature': float(temp),
+                'date': pd.to_datetime(f'{year}-{int(quarter)*3 - 2}-01')
+            }])
+
+            pred_df = make_prediction_simulation(simulation_model, df_input, scaler_features, scaler_targets)
+            pred_dict = pred_df.iloc[0].to_dict()
+            pred_dict["quarter"] = quarter
+
+            coords = pred_dict.get("centerline_coordinates", [])
+            if coords:
+                pred_dict["centerline_coordinates"] = [list(c) for c in coords]
+
+            results.append(pred_dict)
+
+        return jsonify({"predictions": results}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/predict_simulation_tool_batch_with_heatmap', methods=['POST'])
+def predict_with_heatmap():
+    try:
+        input_data = request.get_json()
+        inputs = input_data.get("inputs", [])
+        if not inputs:
+            return jsonify({"error": "No inputs provided"}), 400
+
         feature_names = ['year', 'quarter', 'rainfall', 'temperature']
         target_names = ['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist']
-        feature_importance = calculate_shap_feature_importance(simulation_model, future_X, feature_names)
 
-        # Calculate SHAP feature importance per target and generate heatmap URL
-        feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
-            model=simulation_model,
-            data=future_X,
-            feature_names=feature_names,
-            target_names=target_names
-        )
+        results = []
 
-        # Prepare response
-        response = {
-            "predictions": predictions_df.to_dict(orient='records'),
-            "feature_importance": feature_importance,
-            "feature_importance_per_target": feature_importance_per_target,
-            "heatmap_url": heatmap_url,  # Return the base64-encoded image URL
-            "centerline_coordinates": predictions_df['centerline_coordinates'].iloc[0]  # Add centerline coordinates
-        }
-        return jsonify(response), 200
+        for entry in inputs:
+            year = entry.get("year")
+            quarter = entry.get("quarter")
+            rainfall = entry.get("rainfall")
+            temp = entry.get("temp")
 
-    except HTTPException:
-        return jsonify({"message": "Unsupported Media Type: Send request as encoded JSON"}), 415
-    except KeyError as e:
-        return jsonify({"message": f"{e} - Key not found in request body"}), 404
-    except ValueError as e:
-        return jsonify({"message": f"{e} - Request body input is invalid"}), 400
+            if None in (year, quarter, rainfall, temp):
+                return jsonify({"error": f"Missing fields in input: {entry}"}), 400
+
+            # Prepare input DataFrame for that quarter
+            df_input = prepare_future_input_simulation_year_quarter(year, quarter, rainfall, temp)
+            df_single = df_input[df_input['quarter'] == quarter]
+
+            # Predict
+            pred_df = make_prediction_simulation(simulation_model, df_single, scaler_features, scaler_targets)
+            pred_dict = pred_df.iloc[0].to_dict()
+            pred_dict["quarter"] = quarter
+
+            # Convert tuples to lists for JSON serialization
+            coords = pred_dict.get("centerline_coordinates", [])
+            if coords:
+                pred_dict["centerline_coordinates"] = [list(c) for c in coords]
+
+            # Calculate SHAP feature importance per target
+            feature_importance_per_target, heatmap_url = calculate_shap_feature_importance_per_target(
+                model=simulation_model,
+                data=df_single,
+                feature_names=feature_names,
+                target_names=target_names
+            )
+
+            pred_dict["feature_importance_per_target"] = feature_importance_per_target
+            pred_dict["heatmap_url"] = heatmap_url
+
+            results.append(pred_dict)
+
+        return jsonify({"predictions": results}), 200
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/predict/flooding", methods=["GET"])
 def get_prediction():
