@@ -1,7 +1,5 @@
-
-
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -17,7 +15,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Control points per site
+const makeIcon = (iconUrl) =>
+  new L.Icon({
+    iconUrl,
+    iconRetinaUrl: iconUrl,
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+
+// Create the red icon using your preferred URL
+const redIcon = makeIcon(
+  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png"
+);
+
 const controlPoints = {
   "Site 1": [
     [7.6053056294716415, 79.80250077227974],
@@ -33,8 +46,28 @@ const controlPoints = {
   ]
 };
 
+// Auto-fit map bounds component
+const FitBounds = ({ bounds }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [bounds, map]);
+
+  return null;
+};
+
 const SiteMap = ({ siteName, siteLat, siteLon, userLat, userLon, year, quarter, distance }) => {
   const controls = controlPoints[siteName] || [];
+
+  // Aggregate all points for fitting
+  const bounds = [
+    [siteLat, siteLon],
+    [userLat, userLon],
+    ...controls
+  ];
 
   return (
     <div style={{ marginTop: '24px' }}>
@@ -46,10 +79,12 @@ const SiteMap = ({ siteName, siteLat, siteLon, userLat, userLon, year, quarter, 
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* Circle around the site - 5 km */}
+        <FitBounds bounds={bounds} />
+
+        {/* Circle around the site - 800m */}
         <Circle
           center={[siteLat, siteLon]}
-          radius={800} // meters
+          radius={800}
           pathOptions={{ color: '#1a6b4b', fillColor: '#1a6b4b', fillOpacity: 0.1 }}
         />
 
@@ -63,8 +98,8 @@ const SiteMap = ({ siteName, siteLat, siteLon, userLat, userLon, year, quarter, 
           </Popup>
         </Marker>
 
-        {/* User Marker */}
-        <Marker position={[userLat, userLon]}>
+        {/* User Marker with red icon */}
+        <Marker position={[userLat, userLon]} icon={redIcon}>
           <Popup>
             Your Location<br />
             Lat: {userLat}<br />

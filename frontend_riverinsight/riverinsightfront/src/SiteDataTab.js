@@ -247,10 +247,10 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
               <img src={imageSrc} alt="Inference Explanation" className="inference-image" />
               <div className="explanation">
                 <h3>Saliency Map</h3>
-                <p>This saliency map shows which past inputs had the most influence on the model’s prediction at timestep 3.</p>
+                <p>This saliency map shows which past inputs had the most influence on the model’s prediction at the timestep.</p>
                 <ul>
                   <li><strong>Rows:</strong> Past timesteps (1 to 4).</li>
-                  <li><strong>Columns:</strong> Different input features. (Distance to centerline from Control Points)</li>
+                  <li><strong>Columns:</strong> Different input features. (Distance to centerline from Control Points, year, sin and cos representations of quarter.)</li>
                   <li><strong>Color intensity:</strong> Brighter colors (yellow/white) indicate higher importance, while darker colors (red/black) indicate lower influence.</li>
                 </ul>
                 <p>This visualization shows which timesteps and features had most influence on TCN (Temporal Convolutional Model)'s predictions. </p>

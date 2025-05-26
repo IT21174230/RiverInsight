@@ -94,6 +94,15 @@ def get_raw_point_vals():
     })
     # p=return_to_hp(y, q, temp, rain)
 
+@app.get('/meander_migration/params/short_term/explain')
+def get_shap_explanation():
+    query = request.args.to_dict()
+    y = int(query['year'])
+    q = int(query['quart'])
+    map_idx = int(query['idx'])
+    map = send_map_to_api(y, q, map_idx)
+    return map
+
 # New route for riverbank erosion prediction
 @app.route("/predict_erosion", methods=["POST"])
 def predict_erosion():

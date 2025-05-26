@@ -96,17 +96,23 @@ const handleMapSelect = (lat, lon) => {
   setLongitude(lon.toFixed(6));
 };
 
+const now = new Date();
+const curYear = now.getFullYear();
+const month = now.getMonth();
+const curQuart = Math.floor(month / 3) + 1;
+
+
 const renderPredictionInfo = () => {
   if (predictionData.length === 0 || !nearestSite) return null;
 
   const selectedYearInt = parseInt(year);
   const selectedQuarterInt = parseInt(quarter);
 
-  if (selectedYearInt < 2025) {
+  if (selectedYearInt < curYear) {
     return (
       <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
-        <h3>Deviation of {nearestSite.name} In Relation to 2025 Data</h3>
-        <p>See tabular view for historical data.</p>
+        <h3>Deviation of {nearestSite.name} In Relation to {curYear} Data</h3>
+        <p>Predictions are generated from 2025 onwards. See tabular view for historical data.</p>
       </div>
     );
   }
@@ -125,7 +131,7 @@ const renderPredictionInfo = () => {
 
   if (!currentRow || !baselineRow) return (
     <p style={{ color: '#1a6b4b', marginTop: '16px' }}>
-      Please predict ahead of current year and quarter. See tabular data to check for shift since 1988.
+      Not Apllicable!
     </p>
   );
 

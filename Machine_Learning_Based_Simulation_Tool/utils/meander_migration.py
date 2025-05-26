@@ -8,6 +8,7 @@ from utils.com_cache import m_cache, data_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
 np_config.enable_numpy_behavior()
+import shap
 
 model=r'model\0_85_0_59_filt3_6feat.joblib'
 model_s=r'model\xgb.joblib'
@@ -177,9 +178,10 @@ def get_short_term_predictions(model, years, quarters, rain_list, temp_list, sca
         't2m': rain
     })
 
-    # Predict
     preds = model.predict(df)
+
     return preds
+
 
 def return_to_hp(year, quarter):
   if year>2024:
