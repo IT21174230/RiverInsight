@@ -6,33 +6,39 @@ import MeanderPredInterface from "./MeanderMig";
 import Navigation from "./Navigation";
 import RiverbankErosion from "./riverbankErosion";
 import FloodDashboard from "./pages/Floodui";
+import SimulationTool from "./simulation_tool";
 
 const App = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSimulationTool, setShowSimulationTool] = useState(false);
   const dropdownRef = useRef(null);
   const analysisRef = useRef(null);
 
   const handleMorphologicalClick = () => {
     setShowDropdown((prev) => !prev);
+    setShowSimulationTool(false); // Hide simulation tool when Morphology section opens
     if (!showDropdown) {
-      setSelectedOption(""); // Reset dropdown selection when opening
+      setSelectedOption("");
     }
   };
 
-  // Focus on the dropdown when it appears
+  const handleSimulationClick = () => {
+    setShowSimulationTool((prev) => !prev);
+    setShowDropdown(false); // Hide dropdown when Simulation Tool is toggled
+  };
+
   useEffect(() => {
     if (showDropdown && dropdownRef.current) {
       dropdownRef.current.focus();
     }
   }, [showDropdown]);
 
-  // Scroll to the analysis section when an option is selected
   useEffect(() => {
-    if (selectedOption && analysisRef.current) {
+    if ((selectedOption || showSimulationTool) && analysisRef.current) {
       analysisRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedOption]);
+  }, [selectedOption, showSimulationTool]);
 
   return (
     <Router>
@@ -50,7 +56,10 @@ const App = () => {
             <p>Explore our tools to analyze erosion, flooding, and meandering threats.</p>
           </section>
 
-          <Navigation onMorphologicalClick={handleMorphologicalClick} />
+          <Navigation
+            onMorphologicalClick={handleMorphologicalClick}
+            onSimulationClick={handleSimulationClick}
+          />
 
           {showDropdown && (
             <div className="dropdown-container">
@@ -71,12 +80,12 @@ const App = () => {
           )}
         </main>
 
-        {showDropdown && (
-          <div className="analysis-content expanded-width">
-            {selectedOption === "meander-migration" && <MorphologicalPredictions />}
-
+        {(showDropdown || showSimulationTool) && (
+          <div className="analysis-content full-width" ref={analysisRef}>
+            {selectedOption === "meander-migration" && <MeanderPredInterface />}
             {selectedOption === "erosion" && <RiverbankErosion />}
             {selectedOption === "flooding" && <FloodDashboard />}
+            {showSimulationTool && <SimulationTool />}
           </div>
         )}
 
