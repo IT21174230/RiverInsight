@@ -131,7 +131,7 @@ const renderPredictionInfo = () => {
 
   if (!currentRow || !baselineRow) return (
     <p style={{ color: '#1a6b4b', marginTop: '16px' }}>
-      Not Apllicable!
+      Not Applicable!
     </p>
   );
 

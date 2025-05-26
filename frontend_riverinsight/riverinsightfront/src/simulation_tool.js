@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, ImageOverlay, Circle } from "react-leaflet";
 import axios from "axios";
-import "./simulation_tool.css";
+// import "./simulation_tool.css";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";

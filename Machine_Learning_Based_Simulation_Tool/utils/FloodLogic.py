@@ -123,6 +123,60 @@ def load_model():
 
     return model, prophet_train, temperature_model, humidity_model, rainfall_model
 
+def calculate_monthly_risk(water_areas):
+    """Calculate monthly risk based on daily water area predictions"""
+    # Risk thresholds
+    low_threshold = 7.5
+    high_threshold = 9.0
+    
+    # Count days in each risk category
+    low_risk_days = sum(1 for area in water_areas if area < low_threshold)
+    moderate_risk_days = sum(1 for area in water_areas if low_threshold <= area < high_threshold)
+    high_risk_days = sum(1 for area in water_areas if area >= high_threshold)
+    
+    total_days = len(water_areas)
+    
+    # Calculate percentages
+    high_risk_percentage = (high_risk_days / total_days) * 100
+    moderate_risk_percentage = (moderate_risk_days / total_days) * 100
+    
+    # Determine overall monthly risk
+    if high_risk_percentage >= 30:  # If 30% or more days are high risk
+        monthly_risk = "High Risk"
+        risk_alerts = [
+            f"High flood risk month - {high_risk_days} high-risk days expected",
+            "Prepare emergency plans and evacuation routes",
+            "Monitor weather conditions daily",
+            "Stock emergency supplies"
+        ]
+    elif high_risk_percentage >= 10 or moderate_risk_percentage >= 50:  # If 10%+ high risk or 50%+ moderate risk
+        monthly_risk = "Moderate Risk"
+        risk_alerts = [
+            f"Moderate flood risk month - {high_risk_days} high-risk, {moderate_risk_days} moderate-risk days",
+            "Stay alert to weather forecasts",
+            "Review emergency procedures",
+            "Keep emergency kit ready"
+        ]
+    else:
+        monthly_risk = "Low Risk"
+        risk_alerts = [
+            f"Low flood risk month - mostly safe conditions expected",
+            "Continue normal activities",
+            f"Only {high_risk_days} high-risk days expected"
+        ]
+    
+    return {
+        "monthly_risk": monthly_risk,
+        "alerts": risk_alerts,
+        "risk_breakdown": {
+            "high_risk_days": high_risk_days,
+            "moderate_risk_days": moderate_risk_days,
+            "low_risk_days": low_risk_days,
+            "high_risk_percentage": round(high_risk_percentage, 1),
+            "moderate_risk_percentage": round(moderate_risk_percentage, 1)
+        }
+    }
+
 def flood_prediction_logic(date, model, prophet_train, temperature_model, humidity_model, rainfall_model):
     try:
         user_input_date = pd.to_datetime(date)
@@ -133,8 +187,22 @@ def flood_prediction_logic(date, model, prophet_train, temperature_model, humidi
     if user_input_date <= last_date:
         return {"error": f"Input date must be after {last_date.date()}"}
 
-    forecast_days = (user_input_date - last_date).days
+    # Get the month and year from input date
+    target_month = user_input_date.month
+    target_year = user_input_date.year
+    
+    # Generate all days for the target month
+    month_start = pd.Timestamp(year=target_year, month=target_month, day=1)
+    if target_month == 12:
+        month_end = pd.Timestamp(year=target_year + 1, month=1, day=1) - pd.Timedelta(days=1)
+    else:
+        month_end = pd.Timestamp(year=target_year, month=target_month + 1, day=1) - pd.Timedelta(days=1)
+    
+    # Calculate forecast days needed
+    forecast_days = (month_end - last_date).days
     future = model.make_future_dataframe(periods=forecast_days, freq="D")
+    
+    # Add time-based features
     future["month"] = future["ds"].dt.month
     future["day_of_year"] = future["ds"].dt.dayofyear
     future["month_sin"] = np.sin(2 * np.pi * future["month"] / 12)
@@ -142,12 +210,14 @@ def flood_prediction_logic(date, model, prophet_train, temperature_model, humidi
     future["day_sin"] = np.sin(2 * np.pi * future["day_of_year"] / 365)
     future["day_cos"] = np.cos(2 * np.pi * future["day_of_year"] / 365)
 
+    # Simulate weather regressors using historical monthly averages
     regressors_to_simulate = ["Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity", "Max_Temperature"]
     for reg in regressors_to_simulate:
         if reg in prophet_train.columns:
             monthly_avg = prophet_train.groupby(prophet_train["ds"].dt.month)[reg].mean().to_dict()
             future[reg] = future["ds"].dt.month.map(monthly_avg)
 
+    # Fill lag and rolling features with last known values
     last_value = prophet_train["y"].iloc[-1]
     for reg in ["lag1", "lag3", "lag7", "lag14"]:
         future[reg] = last_value
@@ -156,62 +226,74 @@ def flood_prediction_logic(date, model, prophet_train, temperature_model, humidi
                 "monthly_mean", "monthly_max"]:
         future[col] = prophet_train[col].iloc[-1]
 
+    # Generate predictions for the entire future period
     future_forecast = model.predict(future)
-    forecast_for_date = future_forecast[future_forecast["ds"] == user_input_date]
-    if forecast_for_date.empty:
-        return {"error": "No forecast available for the specified date."}
+    
+    # Filter predictions for the target month
+    monthly_forecast = future_forecast[
+        (future_forecast["ds"] >= month_start) & 
+        (future_forecast["ds"] <= month_end)
+    ].copy()
+    
+    if monthly_forecast.empty:
+        return {"error": "No forecast available for the specified month."}
 
-    row = forecast_for_date.iloc[0]
-    water_area = row["yhat"]
+    # Extract daily water area predictions for the month
+    daily_water_areas = monthly_forecast["yhat"].tolist()
+    
+    # Calculate monthly risk assessment
+    monthly_risk_data = calculate_monthly_risk(daily_water_areas)
+    
+    # Calculate monthly statistics
+    monthly_stats = {
+        "average_water_area": float(round(np.mean(daily_water_areas), 2)),
+        "max_water_area": float(round(np.max(daily_water_areas), 2)),
+        "min_water_area": float(round(np.min(daily_water_areas), 2)),
+        "std_water_area": float(round(np.std(daily_water_areas), 2))
+    }
 
-    if water_area < 7.5:
-        risk_level = "Low Risk"
-        alerts = ["No flood warning", "Continue normal activities"]
-    elif water_area < 9.0:
-        risk_level = "Moderate Risk"
-        alerts = ["Flood risk moderate", "Be cautious", "Monitor water levels"]
-    else:
-        risk_level = "High Risk"
-        alerts = ["Flood warning issued", "Evacuate if necessary", "Seek higher ground"]
-
+    # Generate monthly weather predictions
     predicted_temperature = predicted_humidity = predicted_rainfall = None
     if temperature_model:
-        predicted_temperature = float(round(temperature_model.predict(pd.DataFrame({"ds": [user_input_date]})).iloc[0]["yhat"], 2))
+        temp_forecast = temperature_model.predict(pd.DataFrame({"ds": [month_start, month_end]}))
+        predicted_temperature = float(round(temp_forecast["yhat"].mean(), 2))
     if humidity_model:
-        predicted_humidity = float(round(humidity_model.predict(pd.DataFrame({"ds": [user_input_date]})).iloc[0]["yhat"], 2))
+        hum_forecast = humidity_model.predict(pd.DataFrame({"ds": [month_start, month_end]}))
+        predicted_humidity = float(round(hum_forecast["yhat"].mean(), 2))
     if rainfall_model:
-        predicted_rainfall = float(round(rainfall_model.predict(pd.DataFrame({"ds": [user_input_date]})).iloc[0]["yhat"], 2))
+        rain_forecast = rainfall_model.predict(pd.DataFrame({"ds": [month_start, month_end]}))
+        predicted_rainfall = float(round(rain_forecast["yhat"].mean(), 2))
 
-    year_start = pd.Timestamp(year=user_input_date.year, month=1, day=1)
-    chart_df = future_forecast[(future_forecast["ds"] >= year_start) & (future_forecast["ds"] <= user_input_date)].copy()
-    chart_df["date"] = chart_df["ds"].dt.strftime("%b %d")
-    chart_data = chart_df[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
+    # Prepare chart data for the month
+    monthly_forecast["date"] = monthly_forecast["ds"].dt.strftime("%b %d")
+    chart_data = monthly_forecast[["date", "yhat"]].rename(columns={"yhat": "value"}).to_dict(orient="records")
 
-    feature_importance = explain_prediction_with_lime(model, future, future_forecast, prophet_train, user_input_date)
+    # Get feature importance for mid-month date
+    mid_month_date = month_start + pd.Timedelta(days=15)
+    feature_importance = explain_prediction_with_lime(model, future, future_forecast, prophet_train, mid_month_date)
 
     return {
-        "date": str(user_input_date.date()),
-        "predicted_water_area_km2": float(round(water_area, 2)),
-        "flood_warning": risk_level,
-        "risk_level": risk_level,
-        "alerts": alerts,
+        "month": f"{target_year}-{target_month:02d}",
+        "month_name": month_start.strftime("%B %Y"),
+        "monthly_risk_level": monthly_risk_data["monthly_risk"],
+        "risk_breakdown": monthly_risk_data["risk_breakdown"],
+        "alerts": monthly_risk_data["alerts"],
+        "monthly_statistics": monthly_stats,
         "predicted_temperature": predicted_temperature,
         "predicted_humidity": predicted_humidity,
         "predicted_rainfall": predicted_rainfall,
-        "current_water_area_km2": float(round(water_area, 2)),
-        "rainfall_mm": predicted_rainfall or 0,
-        "prediction_interval": {
-            "lower": float(round(row["yhat_lower"], 2)),
-            "upper": float(round(row["yhat_upper"], 2)),
-        },
-        "regressor_values": {
-            reg: float(round(future[reg].iloc[-1], 2))
-            for reg in regressors_to_simulate if reg in future.columns
-        },
         "chart_data": chart_data,
-        "XAI_Feature_Importance": feature_importance
+        "total_days_in_month": len(daily_water_areas),
+        "XAI_Feature_Importance": feature_importance,
+        
+        # Keep some backward compatibility
+        "date": str(user_input_date.date()),
+        "predicted_water_area_km2": monthly_stats["average_water_area"],
+        "flood_warning": monthly_risk_data["monthly_risk"],
+        "risk_level": monthly_risk_data["monthly_risk"],
+        "current_water_area_km2": monthly_stats["average_water_area"],
+        "rainfall_mm": predicted_rainfall or 0
     }
-
 
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.linear_model import LinearRegression
@@ -222,7 +304,14 @@ def explain_prediction_with_lime(model, future_df, forecast_df, prophet_train, d
     from lime.lime_tabular import LimeTabularExplainer
 
     user_input_date = pd.to_datetime(date_to_explain)
-    idx = forecast_df[forecast_df["ds"] == user_input_date].index[0]
+    forecast_for_date = forecast_df[forecast_df["ds"] == user_input_date]
+    
+    if forecast_for_date.empty:
+        # If exact date not found, find closest date
+        closest_idx = np.argmin(np.abs(forecast_df["ds"] - user_input_date))
+        idx = closest_idx
+    else:
+        idx = forecast_for_date.index[0]
 
     feature_cols = [
         "Average_Temperature", "Rainfall", "Average_Humidity", "Max_Humidity", "Max_Temperature",

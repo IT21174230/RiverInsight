@@ -134,12 +134,12 @@ export default function FloodDashboard() {
 
   return (
     <div className={`${outerBg} min-h-screen p-6 flex justify-center relative`}>
-      <button
+      {/* <button
         onClick={() => setDarkMode(!darkMode)}
         className="absolute top-4 right-4 px-4 py-2 rounded-full border transition-colors"
       >
         {darkMode ? "Light Mode" : "Dark Mode"}
-      </button>
+      </button> */}
 
       <div className={`${cardBg} w-full max-w-7xl rounded-3xl p-8 shadow-lg`}>
         <h1 className="mb-6 text-3xl font-semibold text-gray-500">
