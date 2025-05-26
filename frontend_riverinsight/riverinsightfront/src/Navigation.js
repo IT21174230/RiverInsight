@@ -23,11 +23,6 @@ function Navigation({ onMorphologicalClick }) {
           <h4>River Meandering Simulation Tool</h4>
           <p>Simulate river behavior to predict and plan for changes.</p>
         </div>
-        <div className="nav-item">
-        <FaWater className="icon" onClick={() => navigate("/floodui")} style={{ cursor: "pointer" }}/>
-          <h4>Flood Prediction tool</h4>
-          <p>predict fllod warning to plan for changes.</p>
-      </div>
       </div>
     </section>
   );
