@@ -76,9 +76,14 @@ const App = () => {
             {selectedOption === "meander-migration" && <MorphologicalPredictions />}
 
             {selectedOption === "erosion" && <RiverbankErosion />}
+
             {selectedOption === "flooding" && <FloodDashboard />}
           </div>
         )}
+
+        <Routes>
+          <Route path="/simulation-tool" element={<SimulationTool />} />
+        </Routes>
 
         <footer className="footer">
           <p>
