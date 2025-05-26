@@ -1,5 +1,5 @@
 /* Base Container Styling */
-.simulation-container {
+.simulation-container_2 {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -8,7 +8,7 @@
 }
 
 /* Main Title Styling */
-h2 {
+.title-main_2 {
   font-size: 2.5rem;
   font-weight: bold;
   color: #1a6b4b; /* Green color for the title */
@@ -16,7 +16,8 @@ h2 {
   text-align: center;
 }
 
-h3 {
+/* Section Title Styling */
+.section-title_2 {
   font-size: 1.4rem;
   color: #1a6b4b; /* Darker color for section titles */
   margin-bottom: 10px;
@@ -24,7 +25,7 @@ h3 {
 }
 
 /* Form Container */
-.form-container {
+.form-container_2 {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -37,17 +38,9 @@ h3 {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Form Input Styling */
-.input-container {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-form input[type="date"],
-form input[type="number"] {
+/* Scoped Form Input Styling */
+.custom-form_2 input[type="date"],
+.custom-form_2 input[type="number"] {
   padding: 12px;
   font-size: 1rem;
   border: 2px solid #ccc;
@@ -57,19 +50,19 @@ form input[type="number"] {
   background-color: #fff;
 }
 
-form input[type="date"]:focus,
-form input[type="number"]:focus {
+.custom-form_2 input[type="date"]:focus,
+.custom-form_2 input[type="number"]:focus {
   border-color: #1a6b4b;
   outline: none;
 }
 
-form input[type="date"]:hover,
-form input[type="number"]:hover {
+.custom-form_2 input[type="date"]:hover,
+.custom-form_2 input[type="number"]:hover {
   border-color: #388E3C;
 }
 
 /* Submit Button Styling */
-button {
+.btn-primary_2 {
   background-color: #1a6b4b;
   color: white;
   font-size: 1.2rem;
@@ -85,17 +78,17 @@ button {
   margin-right: auto;
 }
 
-button:hover {
+.btn-primary_2:hover {
   background-color: #155e3b;
 }
 
-button:disabled {
+.btn-primary_2:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
 
 /* Button for Showing Map with All Control Points */
-.show-all-points-button {
+.show-all-points-button_2 {
   margin: 20px 0;
   padding: 10px 20px;
   background-color: #1a6b4b;
@@ -109,12 +102,12 @@ button:disabled {
   margin-right: auto;
 }
 
-.show-all-points-button:hover {
+.show-all-points-button_2:hover {
   background-color: #155e3b;
 }
 
 /* Map and Heatmap Section in a Row */
-.simulation-sections {
+.simulation-sections_2 {
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -123,11 +116,11 @@ button:disabled {
 }
 
 /* Map Section */
-.predictions-section {
+.predictions-section_2 {
   width: 48%; /* Map takes 48% of the available space */
 }
 
-.map-container {
+.map-container_2 {
   width: 100%;
   height: 300px;
   border-radius: 8px;
@@ -136,7 +129,7 @@ button:disabled {
 }
 
 /* Heatmap Section */
-.heatmap-section {
+.heatmap-section_2 {
   width: 48%; /* Heatmap takes 48% of the available space */
   margin-top: 0; /* Adjust margin */
   padding: 20px;
@@ -146,13 +139,13 @@ button:disabled {
   text-align: center;
 }
 
-.heatmap-section h3 {
+.heatmap-section_2 .section-title_2 {
   margin-bottom: 15px;
   font-size: 1.5rem;
   color: #333;
 }
 
-.heatmap-section img {
+.heatmap-section_2 img {
   max-width: 100%;
   height: auto;
   border: 1px solid #ddd;
@@ -161,7 +154,7 @@ button:disabled {
 }
 
 /* Map Grid for Control Points */
-.map-grid {
+.map-grid_2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -169,7 +162,7 @@ button:disabled {
   margin-top: 30px;
 }
 
-.map-box {
+.map-box_2 {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 15px;
@@ -178,7 +171,7 @@ button:disabled {
 }
 
 /* Popup Overlay */
-.popup-overlay {
+.popup-overlay_2 {
   position: fixed;
   top: 0;
   left: 0;
@@ -191,7 +184,7 @@ button:disabled {
   z-index: 1000;
 }
 
-.popup-content {
+.popup-content_2 {
   background-color: white;
   padding: 20px;
   border-radius: 8px;
@@ -201,7 +194,7 @@ button:disabled {
 }
 
 /* Close Popup Button */
-.close-popup-button {
+.close-popup-button_2 {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -214,7 +207,7 @@ button:disabled {
 }
 
 /* Timeline Section Styling */
-.timeline-section {
+.timeline-section_2 {
   width: 55%;
   margin-top: 20px; /* Space below the map */
   margin-left: -750px;
@@ -224,7 +217,8 @@ button:disabled {
   flex-direction: column;
   align-items: center;
 }
-.timeline-slider {
+
+.timeline-slider_2 {
   width: 85%;
   height: 12px;
   background: linear-gradient(to right, #388E3C, #66BB6A);
@@ -233,18 +227,18 @@ button:disabled {
   transition: background 0.3s ease;
 }
 
-.timeline-slider:hover {
+.timeline-slider_2:hover {
   background: linear-gradient(to right, #1B5E20, #4CAF50);
 }
 
-.timeline-info p {
+.timeline-info_2 p {
   font-size: 18px;
   margin-top: 10px;
   color: #4CAF50;
 }
 
 /* Timeline Label Styling */
-.timeline-labels {
+.timeline-labels_2 {
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
@@ -253,13 +247,13 @@ button:disabled {
   width: 80%;
 }
 
-.timeline-label {
+.timeline-label_2 {
   margin-right: 5px;
   text-align: center;
 }
 
 /* Heatmap Section Description */
-.heatmap-description {
+.heatmap-description_2 {
   margin-top: 15px;
   font-size: 1rem;
   color: #333;
@@ -273,26 +267,26 @@ button:disabled {
   margin: 0 auto;
 }
 
-.heatmap-description strong {
+.heatmap-description_2 strong {
   font-weight: bold;
 }
 
 /* Group label and input nicely aligned */
-.input-group {
+.input-group_2 {
   display: flex;
   flex-direction: column;
   margin-bottom: 20px;
   width: 250px; /* match your input widths */
 }
 
-.input-group label {
+.input-group_2 label {
   font-weight: 600;
   color: #1a6b4b;
   margin-bottom: 8px;
   font-size: 1rem;
 }
 
-.styled-select {
+.styled-select_2 {
   padding: 12px 14px;
   font-size: 1rem;
   border: 2px solid #ccc;
@@ -309,8 +303,8 @@ button:disabled {
   width: 100%; /* fill container */
 }
 
-.styled-select:hover,
-.styled-select:focus {
+.styled-select_2:hover,
+.styled-select_2:focus {
   border-color: #388E3C;
   outline: none;
 }
