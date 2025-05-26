@@ -55,8 +55,8 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
           { key: 'year', label: 'Year' },
           { key: 'quarter', label: 'Quarter' },
           { key: 'bend_3', label: 'Meander 3 Deviation (m)' },
-          { key: 'c7_dist', label: 'Control Point 7 (m)' },
-          { key: 'c8_dist', label: 'Control Point 8 (m)' },
+          { key: 'c7_dist', label: 'Control Point 5 (m)' },
+          { key: 'c8_dist', label: 'Control Point 6 (m)' },
         ];
       default:
         return [];
@@ -153,10 +153,6 @@ const SiteDataTab = ({ selectedSite, year, quarter }) => {
   return (
     <div ref={tableRef} className="mt-4">
       <div className="button-row-container">
-        <div className="button-group left-group">
-          <button className="action-btn">Predict Erosion</button>
-          <button className="action-btn">Predict Flood</button>
-        </div>
         <div className="button-group right-group">
           <button className="toggle-button" onClick={() => setShowTotalShift(!showTotalShift)}>
             {showTotalShift ? 'Show Shift by Year' : 'Show Total Shift'}

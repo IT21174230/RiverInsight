@@ -3,7 +3,7 @@ import numpy as np
 import joblib
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
-from utils.meander_migration_xai import intialize_model, generate_map
+from utils.meander_migration_xai import intialize_model, generate_map, compute_shap_values
 from utils.com_cache import m_cache, data_cache
 # to prevent the error when flattening the predictions
 import tensorflow.python.ops.numpy_ops.np_config as np_config
@@ -11,6 +11,7 @@ np_config.enable_numpy_behavior()
 import shap
 
 model=r'model\0_85_0_59_filt3_6feat.joblib'
+model_s=r'model\xgb_final.joblib'
 scaler_year=r'data_dir\scaler_year.pkl'
 scaler_ts=r'data_dir\scaler_ts.pkl'
 last_known_input=r'data_dir\last_known_input.pkl'
@@ -20,6 +21,7 @@ latitudes=r'data_dir\y_coords_7.5m.npy'
 longitudes=r'data_dir\x_coords_7.5m.npy'
 
 model=joblib.load(model)
+model_s=joblib.load(model_s)
 scaler_year=joblib.load(scaler_year)
 scaler_ts=joblib.load(scaler_ts)
 last_known_input=joblib.load(last_known_input)
@@ -149,6 +151,34 @@ def get_past_meandering_values(df, target_year, target_quarter):
       filtered_df['bend_3'] = np.abs((filtered_df['c7_dist'] - filtered_df['c8_dist']).astype(float).round(4))
   return filtered_df
 
+
+def get_short_term_predictions(model, years, quarters, rain_list, temp_list, runoff_list, soil_water, hv, lv, scaler_year):
+    year_array = scaler_year.transform(np.array(years).reshape(-1, 1))
+    quarter_sin = np.sin(2 * np.pi * np.array(quarters) / 4)
+    quarter_cos = np.cos(2 * np.pi * np.array(quarters) / 4)
+
+    df = pd.DataFrame({
+        'year_scaled': year_array.flatten(),
+        'quarter_sin': quarter_sin,
+        'quarter_cos': quarter_cos,
+        'tp': temp_list,
+        't2m': rain_list,
+        'swvl1': soil_water,
+        'sro': runoff_list,
+        'lai_hv': soil_water,
+        'lai_lv': runoff_list
+    })
+
+    preds = model.predict(df)
+
+    shap_dict = compute_shap_values(model, df)
+    for y, q, shap_vals in zip(years, quarters, shap_dict):
+        shap_cache_key = f'shap_{y}_{q}'
+        m_cache.set(shap_cache_key, shap_vals)
+
+    return preds
+
+
 def return_to_hp(year, quarter):
   if year>2024:
     try:
@@ -194,3 +224,7 @@ def return_to_hp(year, quarter):
     past_vals=pd.read_csv(past_migration_vals, index_col=0)
     return get_past_meandering_values(past_vals, year, quarter)
   
+def return_short_term_to_hp(years, quarters, rain, temp, runoff, soil, hv, lv):
+    preds = get_short_term_predictions(model_s, years, quarters, rain, temp, runoff, soil, hv, lv, scaler_year)
+    return preds
+

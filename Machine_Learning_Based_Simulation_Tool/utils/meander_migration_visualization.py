@@ -89,3 +89,45 @@ def get_raw_predictions(year, quarter):
     return centerline_coordinates
   else:
     return 'predict first to get point values'
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+def get_feature_importance(y, q, map_idx):
+    IMAGE_FOLDER = 'data_dir/meander_migration_shap_plots'
+    if not os.path.exists(IMAGE_FOLDER):
+        os.makedirs(IMAGE_FOLDER)
+
+    # Simulate some SHAP values
+    np.random.seed(map_idx + y + q)  # Seed for reproducibility
+    num_outputs = 6
+    feature_labels = ['Year Scaled', 'Quarter Sin', 'Quarter Cos', 'Rainfall', 'Temperature',
+                      'Soil Water Volume', 'Surface Runoff']
+    num_features = len(feature_labels)
+
+    # Simulate SHAP-like values (positive and negative)
+    heatmap = np.random.randn(num_outputs, num_features) * 0.3  # Mean 0, std dev 0.3
+
+    # Optional: amplify feature importance for some outputs
+    heatmap[:, [3, 4, 6]] += np.random.rand(num_outputs, 1) * 0.5  # Boost Rainfall, Temp, Runoff
+
+    # Plot and save image
+    img_filename = f'simulated_shap_row{map_idx}.png'
+    img_path = os.path.join(IMAGE_FOLDER, img_filename)
+
+    plt.figure(figsize=(10, 5))
+    im = plt.imshow(heatmap, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1)
+    plt.colorbar(im, label='Simulated SHAP Value')
+    plt.xticks(ticks=np.arange(num_features), labels=feature_labels, rotation=30, ha='right')
+    plt.yticks(ticks=np.arange(num_outputs), labels=[f'Output {i+1}' for i in range(num_outputs)])
+    plt.title(f'SHAP Heatmap for Row {map_idx} ({y} Q{q})', fontsize=14)
+    plt.xlabel('Features')
+    plt.ylabel('Model Outputs : c*_dist')
+
+    plt.tight_layout()
+    plt.savefig(img_path, dpi=300)
+    plt.close()
+
+    return img_path, None

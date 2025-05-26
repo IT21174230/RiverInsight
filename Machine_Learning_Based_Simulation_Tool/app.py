@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import atexit
 import os
 import shutil
-from utils.meander_migration import return_to_hp
-from utils.meander_migration_xai import send_map_to_api
+from utils.meander_migration import return_to_hp, return_short_term_to_hp
+from utils.meander_migration_xai import send_map_to_api, generate_shap_heatmap_plot
+from utils.meander_migration_visualization import get_feature_importance
 from utils.com_cache import m_cache, data_cache, init_cache
 from utils.riverbank_erosion import load_resources, prepare_future_input, make_predictions, generate_feature_sensitivity_heatmap
 from utils.riverbank_erosion_xai import generate_heatmap_with_timesteps
@@ -66,33 +67,50 @@ def get_saliency():
 
 @app.get('/meander_migration/params/short_term/')
 def get_raw_point_vals():
+    query = request.args.to_dict(flat=False)  # `flat=False` allows list parsing
+    years = list(map(int, query.get('year', [])))
+    quarters = list(map(int, query.get('quart', [])))
+
+    temp = list(map(float, query.get('temp', [])))
+    rain = list(map(float, query.get('rain', [])))
+    runoff = list(map(float, query.get('run', [])))
+    soil = list(map(float, query.get('soil', [])))
+    lv= list(map(float, query.get('lv', [])))
+    hv= list(map(float, query.get('hv', [])))
+
+
+    if not (len(years) == len(quarters) == len(temp) == len(rain) == len(runoff) == len(soil) == len(lv) == len(hv)):
+        return jsonify({'error': 'All input lists (year, quart, temp, rain, run, soil) must be the same length'}), 400
+
+    predictions = return_short_term_to_hp(years, quarters, temp, rain, runoff, soil, lv, hv)
+
+    result = pd.DataFrame(predictions, columns=['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist'])
+    return jsonify({
+        'year': years,
+        'quart': quarters,
+        'temperature': temp,
+        'rainfall': rain,
+        'runoff': runoff,
+        'soil': soil,
+        'lv': lv,
+        'hv':hv,
+        'predictions': result.to_dict(orient='records')
+    })
+
+@app.get('/meander_migration/params/short_term/explain')
+def get_shap_plot():
     query = request.args.to_dict()
     y = int(query['year'])
     q = int(query['quart'])
+    map_idx = int(query['idx'])
 
-    # Get temperature and rainfall as lists
-    temp = list(map(float, request.args.getlist('temp')))
-    rain = list(map(float, request.args.getlist('rain')))
+    im_path, error = get_feature_importance(y, q, map_idx)
+    if im_path:
+        return send_file(im_path, mimetype='image/png')
+    else:
+        return jsonify({'error': error or 'Failed to generate image'}), 500
 
-    # Ensure lengths match
-    if len(temp) != len(rain):
-        return jsonify({'error': 'Temperature and Rainfall lists must be the same length'}), 400
 
-    # Make prediction using model
-    predictions = return_short_term_to_hp(y, q, temp, rain)
-
-    # Format output DataFrame to send back to frontend
-    prediction_df = pd.DataFrame(predictions, columns=['c1_dist', 'c2_dist', 'c3_dist', 'c4_dist', 'c7_dist', 'c8_dist'])
-    result = prediction_df.to_dict(orient='records')
-
-    return jsonify({
-        'year': y,
-        'quart': q,
-        'temperature': temp,
-        'rainfall': rain,
-        'predictions': result
-    })
-    # p=return_to_hp(y, q, temp, rain)
 
 # New route for riverbank erosion prediction
 @app.route("/predict_erosion", methods=["POST"])

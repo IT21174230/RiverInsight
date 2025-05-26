@@ -53,7 +53,8 @@ const App = () => {
         <main className="main-content">
           <section className="intro-section">
             <h2>Welcome to RiverInsight</h2>
-            <p>Explore our tools to analyze erosion, flooding, and meandering threats.</p>
+            <p>RiverInsight is your go-to-tool for secure infrastructure building and hydrological predictions of lower Deduru Oya.
+              Explore our tools to predict and simulate erosion, flooding, and meandering threats.</p>
           </section>
 
           <Navigation

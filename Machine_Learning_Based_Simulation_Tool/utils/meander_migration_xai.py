@@ -99,4 +99,75 @@ def send_map_to_api(year, quarter, map_idx):
     else:
         return 'Predict first to generate saliency map', 404
 
+def compute_shap_values(model, input_df):
+    shap_values_dict = {}
 
+    # Each estimator corresponds to one output dimension
+    num_outputs = len(model.estimators_)
+
+    for output_idx in range(num_outputs):
+        estimator = model.estimators_[output_idx]
+        explainer = shap.Explainer(estimator, input_df)
+        shap_values = explainer(input_df)
+
+        for row_idx in range(len(input_df)):
+            if row_idx not in shap_values_dict:
+                shap_values_dict[row_idx] = {}
+
+            shap_values_dict[row_idx][f'output_{output_idx}'] = {
+                'shap_values': shap_values.values[row_idx].tolist(),
+                'base_value': shap_values.base_values[row_idx],
+                'feature_values': input_df.iloc[row_idx].to_dict(),
+                'feature_names': input_df.columns.tolist()
+            }
+
+    return shap_values_dict
+
+
+def generate_shap_heatmap_plot(y, q, map_idx):
+    try:
+        IMAGE_FOLDER = r'data_dir/meander_migration_shap_plots'
+        if not os.path.exists(IMAGE_FOLDER):
+            os.makedirs(IMAGE_FOLDER)
+
+        row_index = 0  
+        img_filename = f'shap_heatmap_row{row_index}.png'
+        img_path = os.path.join(IMAGE_FOLDER, img_filename)
+
+        shap_cache_key = f'shap_{y}_{q}'  
+        shap_data = m_cache.get(shap_cache_key)
+        if shap_data is None:
+            return None, f"SHAP cache not found for key '{shap_cache_key}'"
+
+        if row_index not in shap_data:
+            return None, f"No SHAP data found for row {row_index}"
+
+        # Collect SHAP values across all outputs
+        outputs = sorted(shap_data[row_index].keys(), key=lambda x: int(x.split('_')[1]))
+        num_outputs = len(outputs)
+
+        feature_labels = ['Year Scaled', 'Quarter Sin', 'Quarter Cos', 'Rainfall', 'Temperature', 'Soil Water Volume', 'Surface Runoff']
+        num_features = len(feature_labels)
+
+        heatmap = np.zeros((num_outputs, num_features))
+        for i, output_key in enumerate(outputs):
+            shap_values = np.array(shap_data[row_index][output_key]['shap_values'])
+            heatmap[i, :] = shap_values
+
+        # Plot heatmap
+        plt.figure(figsize=(10, 5))
+        im = plt.imshow(heatmap, cmap='coolwarm', aspect='auto')
+        plt.colorbar(im, label='SHAP Value')
+        plt.xticks(ticks=np.arange(num_features), labels=feature_labels, rotation=30, ha='right')
+        plt.yticks(ticks=np.arange(num_outputs), labels=[f'Output {i+1}' for i in range(num_outputs)])
+        plt.title(f'SHAP Heatmap for Row {row_index}', fontsize=14)
+        plt.xlabel('Features')
+        plt.ylabel('Model Outputs')
+
+        plt.tight_layout()
+        plt.savefig(img_path, dpi=300)
+        plt.close()
+
+        return img_path, None  # Still a tuple
+    except Exception as e:
+        return None, str(e)

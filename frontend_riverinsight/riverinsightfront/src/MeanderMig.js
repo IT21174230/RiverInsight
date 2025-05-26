@@ -3,6 +3,7 @@ import SiteMap from './SiteMap';
 import SiteDataTab from './SiteDataTab.js';
 import MapSelectorOverlay from './MapSelectorOverlay.js';
 import './MorphologicalPredictions.css';
+import HydrologicalPredictions from './HydrologicalPredictions.js';
 import axios from 'axios';
 
 const siteLocations = [
@@ -34,6 +35,7 @@ const MeanderPredInterface = () => {
   const [predictionData, setPredictionData] = useState([]);
   const [showTable, setShowTable] = useState(false);
   const [showMapSelector, setShowMapSelector] = useState(false);
+  const [showHydrology, setShowHydrology] = useState(false);
 
   const handlePredict = async () => {
     const lat = parseFloat(latitude);
@@ -207,6 +209,12 @@ const renderPredictionInfo = () => {
           </span>
         </div>
 
+        <div className="map-link-container">
+          <span className="map-link" onClick={() => setShowHydrology(true)}>
+            🔬 Predict using hydrology data
+          </span>
+        </div>
+
         <label className="input-label">
           Year:
           <select className="input-field" value={year} onChange={(e) => setYear(e.target.value)}>
@@ -227,59 +235,62 @@ const renderPredictionInfo = () => {
         </label>
       </div>
 
-      <button className="fetch-button" onClick={handlePredict}>Predict</button>
+      {/* <button className="fetch-button" onClick={handlePredict}>Predict</button> */}
 
-      {showMapSelector && (
-        <MapSelectorOverlay
-          onSelect={handleMapSelect}
-          onClose={() => setShowMapSelector(false)}
-        />
+  {!showHydrology && (
+        <>
+          <button className="fetch-button" onClick={handlePredict}>Predict</button>
+          {showMapSelector && (
+            <MapSelectorOverlay
+              onSelect={handleMapSelect}
+              onClose={() => setShowMapSelector(false)}
+            />
+          )}
+          {loading && (
+            <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
+              <span className="spinner" /> Finding the nearest site...
+            </div>
+          )}
+          {!loading && message && <p style={{ marginTop: '16px', color: '#1a6b4b' }}>{message}</p>}
+          {!loading && nearestSite && (
+            <>
+              <div className="content-wrapper">
+                <div className="map-container">
+                  <SiteMap
+                    siteName={nearestSite.name}
+                    siteLat={nearestSite.lat}
+                    siteLon={nearestSite.lon}
+                    userLat={parseFloat(latitude)}
+                    userLon={parseFloat(longitude)}
+                    year={year}
+                    quarter={quarter}
+                    distance={nearestSite.distance}
+                  />
+                </div>
+                <div className="prediction-container">
+                  {renderPredictionInfo()}
+                  <button
+                    className="fetch-button"
+                    style={{ marginTop: '16px' }}
+                    onClick={() => setShowTable(prev => !prev)}
+                  >
+                    {showTable ? 'Hide' : 'Show'} Tabular Data
+                  </button>
+                </div>
+              </div>
+              {showTable && (
+                <div style={{ width: '90%', marginTop: '20px' }}>
+                  <SiteDataTab selectedSite={nearestSite.name} year={year} quarter={quarter} />
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
-      {loading && (
-        <div style={{ marginTop: '16px', color: '#1a6b4b' }}>
-          <span className="spinner" /> Finding the nearest site...
-        </div>
+      {showHydrology && (
+        <HydrologicalPredictions onClose={() => setShowHydrology(false)} />
       )}
-
-      {!loading && message && <p style={{ marginTop: '16px', color: '#1a6b4b' }}>{message}</p>}
-
-      {!loading && nearestSite && (
-      <>
-        <div className="content-wrapper">
-  <div className="map-container">
-    <SiteMap
-      siteName={nearestSite.name}
-      siteLat={nearestSite.lat}
-      siteLon={nearestSite.lon}
-      userLat={parseFloat(latitude)}
-      userLon={parseFloat(longitude)}
-      year={year}
-      quarter={quarter}
-      distance={nearestSite.distance}
-    />
-    </div>
-          <div className="prediction-container">
-            {renderPredictionInfo()}
-            <button
-              className="fetch-button"
-              style={{ marginTop: '16px' }}
-              onClick={() => setShowTable(prev => !prev)}
-            >
-              {showTable ? 'Hide' : 'Show'} Tabular Data
-            </button>
-          </div>
-        </div>
-
-        {showTable && (
-          <div style={{ width: '90%', marginTop: '20px' }}>
-            <SiteDataTab selectedSite={nearestSite.name} year={year} quarter={quarter} />
-          </div>
-        )}
-
-      </>
-    )}
-
     </div>
   );
 };
